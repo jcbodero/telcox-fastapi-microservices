@@ -148,7 +148,7 @@ Configura esta variable en GitHub:
 
 ```text
 Repository > Settings > Secrets and variables > Actions > Variables
-DUCKDNS_HOST=TU_SUBDOMINIO.duckdns.org
+DUCKDNS_HOST=telcox.duckdns.org
 ```
 
 Requisitos en el servidor Ubuntu donde corre el runner:
@@ -249,7 +249,7 @@ Audit Service queda expuesto por defecto con Traefik, TLS y DuckDNS:
 ingress:
   enabled: true
   className: traefik
-  host: TU_SUBDOMINIO.duckdns.org
+  host: telcox.duckdns.org
   annotations:
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
     traefik.ingress.kubernetes.io/router.tls: "true"
@@ -262,16 +262,16 @@ Los demas microservicios tienen `ingress.enabled: false` y pueden activarse con 
 Con DuckDNS se recomienda usar un solo host y enrutar por base path:
 
 ```text
-https://TU_SUBDOMINIO.duckdns.org/audit-service/health
-https://TU_SUBDOMINIO.duckdns.org/customer-service/health
-https://TU_SUBDOMINIO.duckdns.org/catalog-service/health
+https://telcox.duckdns.org/audit-service/health
+https://telcox.duckdns.org/customer-service/health
+https://telcox.duckdns.org/catalog-service/health
 ```
 
 Probar Audit Service sin `port-forward`:
 
 ```bash
-curl https://TU_SUBDOMINIO.duckdns.org/audit-service/health
-curl https://TU_SUBDOMINIO.duckdns.org/audit-service/audit-events
+curl https://telcox.duckdns.org/audit-service/health
+curl https://telcox.duckdns.org/audit-service/audit-events
 ```
 
 Si quieres activar Traefik para otro microservicio:
@@ -283,7 +283,7 @@ helm upgrade --install customer-service services/customer_service/setup/helm \
   --set image.repository=ghcr.io/jcbodero/telcox-customer-service \
   --set image.tag=latest \
   --set ingress.enabled=true \
-  --set ingress.host=TU_SUBDOMINIO.duckdns.org
+  --set ingress.host=telcox.duckdns.org
 ```
 
 ## TLS gratis con DuckDNS
@@ -304,7 +304,7 @@ traefik.ingress.kubernetes.io/router.tls.certresolver: duckdns
 Usa un host publico de DuckDNS, por ejemplo:
 
 ```text
-TU_SUBDOMINIO.duckdns.org
+telcox.duckdns.org
 ```
 
 Desplegar Audit Service con HTTPS:
@@ -315,13 +315,13 @@ helm upgrade --install audit-service services/audit_service/setup/helm \
   --create-namespace \
   --set image.repository=ghcr.io/jcbodero/telcox-audit-service \
   --set image.tag=latest \
-  --set ingress.host=TU_SUBDOMINIO.duckdns.org
+  --set ingress.host=telcox.duckdns.org
 ```
 
 Probar:
 
 ```bash
-curl https://TU_SUBDOMINIO.duckdns.org/audit-service/health
+curl https://telcox.duckdns.org/audit-service/health
 ```
 
 Documentacion OpenAPI por servicio:

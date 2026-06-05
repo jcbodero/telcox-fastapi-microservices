@@ -5,8 +5,8 @@ Esta configuracion prepara Traefik en K3s para emitir certificados gratuitos de 
 Usa un unico host publico de DuckDNS y enruta cada microservicio por base path:
 
 ```text
-https://TU_SUBDOMINIO.duckdns.org/audit-service/health
-https://TU_SUBDOMINIO.duckdns.org/customer-service/health
+https://telcox.duckdns.org/audit-service/health
+https://telcox.duckdns.org/customer-service/health
 ```
 
 ## 1. Crear subdominio en DuckDNS
@@ -58,7 +58,7 @@ KUBECONFIG=/home/julio/.kube/config helm upgrade --install audit-service service
   --create-namespace \
   --set image.repository=ghcr.io/jcbodero/telcox-audit-service \
   --set image.tag=latest \
-  --set ingress.host=TU_SUBDOMINIO.duckdns.org
+  --set ingress.host=telcox.duckdns.org
 ```
 
 ## 5. Validar
@@ -71,13 +71,13 @@ KUBECONFIG=/home/julio/.kube/config kubectl logs -n kube-system deploy/traefik |
 Probar:
 
 ```bash
-curl -k https://TU_SUBDOMINIO.duckdns.org/audit-service/health
+curl -k https://telcox.duckdns.org/audit-service/health
 ```
 
 Cuando el certificado este emitido correctamente, prueba sin `-k`:
 
 ```bash
-curl https://TU_SUBDOMINIO.duckdns.org/audit-service/health
+curl https://telcox.duckdns.org/audit-service/health
 ```
 
 ## Notas

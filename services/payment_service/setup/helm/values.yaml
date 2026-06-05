@@ -17,7 +17,7 @@ service:
 ingress:
   enabled: false
   className: traefik
-  host: TU_SUBDOMINIO.duckdns.org
+  host: telcox.duckdns.org
   annotations:
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
     traefik.ingress.kubernetes.io/router.tls: "true"

@@ -19,6 +19,7 @@ env:
   RELEASE_NAME: audit-service
   NAMESPACE: telcox
   CHART_PATH: services/audit_service/setup/helm
+  KUBECONFIG: /home/julio/.kube/config
 
 jobs:
   build-push-and-deploy:
@@ -58,6 +59,12 @@ jobs:
         run: |
           docker push "${IMAGE_NAME}:${IMAGE_TAG}"
           docker push "${IMAGE_NAME}:latest"
+
+      - name: Verify Kubernetes access
+        shell: bash
+        run: |
+          kubectl get nodes
+          helm list --all-namespaces
 
       - name: Deploy with Helm
         shell: bash

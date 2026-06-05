@@ -121,6 +121,106 @@ docker build -f services/onboarding_service/setup/Dockerfile -t telcox/onboardin
 docker build -f services/audit_service/setup/Dockerfile -t telcox/audit-service:1.0.0 .
 ```
 
+## CI/CD de Audit Service con GitHub Actions
+
+El microservicio `audit_service` tiene configurado un pipeline en:
+
+- `.github/workflows/audit-service-ci.yml`
+
+El workflow usa:
+
+- `runs-on: self-hosted`
+- GitHub Container Registry: `ghcr.io`
+- Imagen: `ghcr.io/jcbodero/telcox-audit-service`
+- Helm chart: `services/audit_service/setup/helm`
+- Namespace Kubernetes: `telcox`
+
+El pipeline se ejecuta cuando hay cambios en:
+
+- `requirements.txt`
+- `services/audit_service/**`
+- `.github/workflows/audit-service-ci.yml`
+
+Tambien puede ejecutarse manualmente desde GitHub con `workflow_dispatch`.
+
+Requisitos en el servidor Ubuntu donde corre el runner:
+
+```bash
+docker --version
+python3 --version
+kubectl version --client
+helm version
+```
+
+El usuario que ejecuta el runner debe poder usar Docker sin `sudo`:
+
+```bash
+sudo usermod -aG docker $USER
+```
+
+Despues de ese comando, cerrar sesion y volver a entrar.
+
+Si la imagen queda privada en GHCR, crear un secret en Kubernetes:
+
+```bash
+kubectl create secret docker-registry ghcr-secret \
+  --namespace telcox \
+  --docker-server=ghcr.io \
+  --docker-username=jcbodero \
+  --docker-password=TU_TOKEN_GITHUB \
+  --docker-email=TU_EMAIL
+```
+
+Y activar el secret en `services/audit_service/setup/helm/values.yaml`:
+
+```yaml
+imagePullSecrets:
+  - name: ghcr-secret
+```
+
+Si la imagen es publica, no hace falta `imagePullSecrets`.
+
+## Helm por microservicio
+
+Cada microservicio tiene su propio chart Helm en una carpeta `helm`:
+
+- `services/customer_service/setup/helm`
+- `services/catalog_service/setup/helm`
+- `services/service_status_service/setup/helm`
+- `services/provisioning_service/setup/helm`
+- `services/billing_service/setup/helm`
+- `services/payment_service/setup/helm`
+- `services/notification_service/setup/helm`
+- `services/onboarding_service/setup/helm`
+- `services/audit_service/setup/helm`
+
+Cada chart incluye:
+
+- `Chart.yaml`
+- `values.yaml`
+- `templates/deployment.yaml`
+- `templates/service.yaml`
+
+Ejemplo de despliegue manual para Audit Service:
+
+```bash
+helm upgrade --install audit-service services/audit_service/setup/helm \
+  --namespace telcox \
+  --create-namespace \
+  --set image.repository=ghcr.io/jcbodero/telcox-audit-service \
+  --set image.tag=latest
+```
+
+Ejemplo para Customer Service:
+
+```bash
+helm upgrade --install customer-service services/customer_service/setup/helm \
+  --namespace telcox \
+  --create-namespace \
+  --set image.repository=ghcr.io/jcbodero/telcox-customer-service \
+  --set image.tag=latest
+```
+
 Documentacion OpenAPI por servicio:
 
 - `http://localhost:8001/docs`

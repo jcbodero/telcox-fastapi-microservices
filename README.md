@@ -221,6 +221,83 @@ helm upgrade --install customer-service services/customer_service/setup/helm \
   --set image.tag=latest
 ```
 
+## Traefik Ingress
+
+Los charts Helm incluyen soporte para Traefik mediante `Ingress`:
+
+- `templates/ingress.yaml`
+- `values.yaml > ingress`
+
+En K3s, Traefik suele venir instalado por defecto. Validar:
+
+```bash
+KUBECONFIG=/home/julio/.kube/config kubectl get pods -n kube-system | grep traefik
+KUBECONFIG=/home/julio/.kube/config kubectl get ingressclass
+```
+
+Audit Service queda expuesto por defecto con:
+
+```yaml
+ingress:
+  enabled: true
+  className: traefik
+  host: audit.telcox.local
+```
+
+Los demas microservicios tienen `ingress.enabled: false` y pueden activarse con `--set ingress.enabled=true`.
+
+Hosts sugeridos:
+
+```text
+audit.telcox.local
+customer.telcox.local
+catalog.telcox.local
+service-status.telcox.local
+provisioning.telcox.local
+billing.telcox.local
+payment.telcox.local
+notification.telcox.local
+onboarding.telcox.local
+```
+
+En tu PC Windows, editar como administrador:
+
+```text
+C:\Windows\System32\drivers\etc\hosts
+```
+
+Agregar:
+
+```text
+192.168.100.245 audit.telcox.local
+192.168.100.245 customer.telcox.local
+192.168.100.245 catalog.telcox.local
+192.168.100.245 service-status.telcox.local
+192.168.100.245 provisioning.telcox.local
+192.168.100.245 billing.telcox.local
+192.168.100.245 payment.telcox.local
+192.168.100.245 notification.telcox.local
+192.168.100.245 onboarding.telcox.local
+```
+
+Probar Audit Service sin `port-forward`:
+
+```bash
+curl http://audit.telcox.local/health
+curl http://audit.telcox.local/audit-events
+```
+
+Si quieres activar Traefik para otro microservicio:
+
+```bash
+helm upgrade --install customer-service services/customer_service/setup/helm \
+  --namespace telcox \
+  --create-namespace \
+  --set image.repository=ghcr.io/jcbodero/telcox-customer-service \
+  --set image.tag=latest \
+  --set ingress.enabled=true
+```
+
 Documentacion OpenAPI por servicio:
 
 - `http://localhost:8001/docs`

@@ -12,6 +12,12 @@ service:
   port: 80
   targetPort: 8000
 
+ingress:
+  enabled: false
+  className: traefik
+  host: catalog.telcox.local
+  annotations: {}
+
 resources:
   requests:
     cpu: 50m

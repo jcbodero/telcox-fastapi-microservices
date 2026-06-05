@@ -20,6 +20,7 @@ env:
   NAMESPACE: telcox
   CHART_PATH: services/audit_service/setup/helm
   KUBECONFIG: /home/julio/.kube/config
+  INGRESS_HOST: ${{ vars.DUCKDNS_HOST || 'TU_SUBDOMINIO.duckdns.org' }}
 
 jobs:
   build-push-and-deploy:
@@ -73,7 +74,8 @@ jobs:
             --namespace "${NAMESPACE}" \
             --create-namespace \
             --set image.repository="${IMAGE_NAME}" \
-            --set image.tag="${IMAGE_TAG}"
+            --set image.tag="${IMAGE_TAG}" \
+            --set ingress.host="${INGRESS_HOST}"
 
       - name: Verify Kubernetes rollout
         shell: bash

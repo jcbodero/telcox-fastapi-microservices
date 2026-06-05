@@ -134,6 +134,7 @@ El workflow usa:
 - Imagen: `ghcr.io/jcbodero/telcox-audit-service`
 - Helm chart: `services/audit_service/setup/helm`
 - Namespace Kubernetes: `telcox`
+- Variable GitHub Actions: `DUCKDNS_HOST`
 
 El pipeline se ejecuta cuando hay cambios en:
 
@@ -142,6 +143,13 @@ El pipeline se ejecuta cuando hay cambios en:
 - `.github/workflows/audit-service-ci.yml`
 
 Tambien puede ejecutarse manualmente desde GitHub con `workflow_dispatch`.
+
+Configura esta variable en GitHub:
+
+```text
+Repository > Settings > Secrets and variables > Actions > Variables
+DUCKDNS_HOST=TU_SUBDOMINIO.duckdns.org
+```
 
 Requisitos en el servidor Ubuntu donde corre el runner:
 
@@ -235,57 +243,35 @@ KUBECONFIG=/home/julio/.kube/config kubectl get pods -n kube-system | grep traef
 KUBECONFIG=/home/julio/.kube/config kubectl get ingressclass
 ```
 
-Audit Service queda expuesto por defecto con:
+Audit Service queda expuesto por defecto con Traefik, TLS y DuckDNS:
 
 ```yaml
 ingress:
   enabled: true
   className: traefik
-  host: audit.telcox.local
+  host: TU_SUBDOMINIO.duckdns.org
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    traefik.ingress.kubernetes.io/router.tls.certresolver: duckdns
 basePath: /audit-service
 ```
 
 Los demas microservicios tienen `ingress.enabled: false` y pueden activarse con `--set ingress.enabled=true`.
 
-Hosts sugeridos:
+Con DuckDNS se recomienda usar un solo host y enrutar por base path:
 
 ```text
-audit.telcox.local
-customer.telcox.local
-catalog.telcox.local
-service-status.telcox.local
-provisioning.telcox.local
-billing.telcox.local
-payment.telcox.local
-notification.telcox.local
-onboarding.telcox.local
-```
-
-En tu PC Windows, editar como administrador:
-
-```text
-C:\Windows\System32\drivers\etc\hosts
-```
-
-Agregar:
-
-```text
-192.168.100.245 audit.telcox.local
-192.168.100.245 customer.telcox.local
-192.168.100.245 catalog.telcox.local
-192.168.100.245 service-status.telcox.local
-192.168.100.245 provisioning.telcox.local
-192.168.100.245 billing.telcox.local
-192.168.100.245 payment.telcox.local
-192.168.100.245 notification.telcox.local
-192.168.100.245 onboarding.telcox.local
+https://TU_SUBDOMINIO.duckdns.org/audit-service/health
+https://TU_SUBDOMINIO.duckdns.org/customer-service/health
+https://TU_SUBDOMINIO.duckdns.org/catalog-service/health
 ```
 
 Probar Audit Service sin `port-forward`:
 
 ```bash
-curl http://audit.telcox.local/audit-service/health
-curl http://audit.telcox.local/audit-service/audit-events
+curl https://TU_SUBDOMINIO.duckdns.org/audit-service/health
+curl https://TU_SUBDOMINIO.duckdns.org/audit-service/audit-events
 ```
 
 Si quieres activar Traefik para otro microservicio:
@@ -296,7 +282,46 @@ helm upgrade --install customer-service services/customer_service/setup/helm \
   --create-namespace \
   --set image.repository=ghcr.io/jcbodero/telcox-customer-service \
   --set image.tag=latest \
-  --set ingress.enabled=true
+  --set ingress.enabled=true \
+  --set ingress.host=TU_SUBDOMINIO.duckdns.org
+```
+
+## TLS gratis con DuckDNS
+
+El proyecto incluye configuracion para emitir certificados gratuitos de Let's Encrypt con DuckDNS y Traefik:
+
+- `infra/k3s-traefik-duckdns/traefik-duckdns-helmchartconfig.yaml`
+- `infra/k3s-traefik-duckdns/README.md`
+
+Cada Ingress queda preparado con:
+
+```yaml
+traefik.ingress.kubernetes.io/router.entrypoints: websecure
+traefik.ingress.kubernetes.io/router.tls: "true"
+traefik.ingress.kubernetes.io/router.tls.certresolver: duckdns
+```
+
+Usa un host publico de DuckDNS, por ejemplo:
+
+```text
+TU_SUBDOMINIO.duckdns.org
+```
+
+Desplegar Audit Service con HTTPS:
+
+```bash
+helm upgrade --install audit-service services/audit_service/setup/helm \
+  --namespace telcox \
+  --create-namespace \
+  --set image.repository=ghcr.io/jcbodero/telcox-audit-service \
+  --set image.tag=latest \
+  --set ingress.host=TU_SUBDOMINIO.duckdns.org
+```
+
+Probar:
+
+```bash
+curl https://TU_SUBDOMINIO.duckdns.org/audit-service/health
 ```
 
 Documentacion OpenAPI por servicio:

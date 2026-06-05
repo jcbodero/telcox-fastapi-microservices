@@ -22,6 +22,8 @@ app = FastAPI(
     title="TelcoX Customer Service",
     description="CRUD basico de clientes TelcoX. Simula la consulta de datos del BSS.",
     version="1.0.0",
+    docs_url="/customer-service/docs",
+    openapi_url="/customer-service/openapi.json",
 )
 
 
@@ -54,31 +56,31 @@ customers: dict[str, dict[str, Any]] = {
 }
 
 
-@app.get("/health", tags=["health"])
+@app.get("/customer-service/health", tags=["health"])
 def health() -> dict[str, str]:
     return {"status": "ok", "service": "Customer Service"}
 
 
-@app.get("/customers", response_model=list[CustomerResponse], tags=["customers"])
+@app.get("/customer-service/customers", response_model=list[CustomerResponse], tags=["customers"])
 def list_customers() -> list[dict[str, Any]]:
     return list(customers.values())
 
 
-@app.post("/customers", response_model=CustomerResponse, status_code=status.HTTP_201_CREATED, tags=["customers"])
+@app.post("/customer-service/customers", response_model=CustomerResponse, status_code=status.HTTP_201_CREATED, tags=["customers"])
 def create_customer(payload: CustomerPayload) -> dict[str, Any]:
     customer = build_customer(payload.data)
     customers[customer["id"]] = customer
     return customer
 
 
-@app.get("/customers/{customer_id}", response_model=CustomerResponse, tags=["customers"])
+@app.get("/customer-service/customers/{customer_id}", response_model=CustomerResponse, tags=["customers"])
 def get_customer(customer_id: str) -> dict[str, Any]:
     if customer_id not in customers:
         raise HTTPException(status_code=404, detail="Customer not found")
     return customers[customer_id]
 
 
-@app.put("/customers/{customer_id}", response_model=CustomerResponse, tags=["customers"])
+@app.put("/customer-service/customers/{customer_id}", response_model=CustomerResponse, tags=["customers"])
 def replace_customer(customer_id: str, payload: CustomerPayload) -> dict[str, Any]:
     if customer_id not in customers:
         raise HTTPException(status_code=404, detail="Customer not found")
@@ -94,7 +96,7 @@ def replace_customer(customer_id: str, payload: CustomerPayload) -> dict[str, An
     return customer
 
 
-@app.patch("/customers/{customer_id}", response_model=CustomerResponse, tags=["customers"])
+@app.patch("/customer-service/customers/{customer_id}", response_model=CustomerResponse, tags=["customers"])
 def update_customer(customer_id: str, payload: CustomerPayload) -> dict[str, Any]:
     if customer_id not in customers:
         raise HTTPException(status_code=404, detail="Customer not found")
@@ -102,8 +104,9 @@ def update_customer(customer_id: str, payload: CustomerPayload) -> dict[str, Any
     return customers[customer_id]
 
 
-@app.delete("/customers/{customer_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["customers"])
+@app.delete("/customer-service/customers/{customer_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["customers"])
 def delete_customer(customer_id: str) -> None:
     if customer_id not in customers:
         raise HTTPException(status_code=404, detail="Customer not found")
     del customers[customer_id]
+

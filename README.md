@@ -20,29 +20,29 @@ La arquitectura recomendada es desacoplada:
 
 ## Microservicios incluidos
 
-| Servicio | Puerto sugerido | Recurso CRUD | Responsabilidad |
-| --- | ---: | --- | --- |
-| Customer Service | 8001 | `/customers` | Datos basicos de clientes simulando consulta al BSS. |
-| Catalog Service | 8002 | `/products` | Planes, paquetes y servicios adicionales. |
-| Service Status Service | 8003 | `/active-services` | Estado de servicios activos, uso de datos y saldo. |
-| Provisioning Service | 8004 | `/orders` | Ordenes de alta, cambio de plan y servicios adicionales. |
-| Billing Service | 8005 | `/invoices` | Facturas, estado SRI y reenvio logico de comprobantes. |
-| Payment Service | 8006 | `/payments` | Pagos e historial, simulando gateway externo. |
-| Notification Service | 8007 | `/notifications` | Notificaciones por SMS, email y push. |
-| Onboarding Service | 8008 | `/onboarding-cases` | Registro de nuevos clientes con documento y biometria. |
-| Audit Service | 8009 | `/audit-events` | Registro auditable de acciones y eventos. |
+| Servicio | Puerto sugerido | Base path | Recurso CRUD | Responsabilidad |
+| --- | ---: | --- | --- | --- |
+| Customer Service | 8001 | `/customer-service` | `/customers` | Datos basicos de clientes simulando consulta al BSS. |
+| Catalog Service | 8002 | `/catalog-service` | `/products` | Planes, paquetes y servicios adicionales. |
+| Service Status Service | 8003 | `/service-status-service` | `/active-services` | Estado de servicios activos, uso de datos y saldo. |
+| Provisioning Service | 8004 | `/provisioning-service` | `/orders` | Ordenes de alta, cambio de plan y servicios adicionales. |
+| Billing Service | 8005 | `/billing-service` | `/invoices` | Facturas, estado SRI y reenvio logico de comprobantes. |
+| Payment Service | 8006 | `/payment-service` | `/payments` | Pagos e historial, simulando gateway externo. |
+| Notification Service | 8007 | `/notification-service` | `/notifications` | Notificaciones por SMS, email y push. |
+| Onboarding Service | 8008 | `/onboarding-service` | `/onboarding-cases` | Registro de nuevos clientes con documento y biometria. |
+| Audit Service | 8009 | `/audit-service` | `/audit-events` | Registro auditable de acciones y eventos. |
 
 ## Endpoints CRUD comunes
 
 Cada servicio expone:
 
-- `GET /health`
-- `GET /{recurso}`
-- `POST /{recurso}`
-- `GET /{recurso}/{item_id}`
-- `PUT /{recurso}/{item_id}`
-- `PATCH /{recurso}/{item_id}`
-- `DELETE /{recurso}/{item_id}`
+- `GET /{basePath}/health`
+- `GET /{basePath}/{recurso}`
+- `POST /{basePath}/{recurso}`
+- `GET /{basePath}/{recurso}/{item_id}`
+- `PUT /{basePath}/{recurso}/{item_id}`
+- `PATCH /{basePath}/{recurso}/{item_id}`
+- `DELETE /{basePath}/{recurso}/{item_id}`
 
 Formato para crear o actualizar:
 
@@ -57,7 +57,7 @@ Formato para crear o actualizar:
 Ejemplo:
 
 ```powershell
-curl -X POST http://localhost:8001/customers `
+curl -X POST http://localhost:8001/customer-service/customers `
   -H "Content-Type: application/json" `
   -d "{\"data\":{\"document_id\":\"0922222222\",\"full_name\":\"Luis Perez\",\"status\":\"active\"}}"
 ```
@@ -242,6 +242,7 @@ ingress:
   enabled: true
   className: traefik
   host: audit.telcox.local
+basePath: /audit-service
 ```
 
 Los demas microservicios tienen `ingress.enabled: false` y pueden activarse con `--set ingress.enabled=true`.
@@ -283,8 +284,8 @@ Agregar:
 Probar Audit Service sin `port-forward`:
 
 ```bash
-curl http://audit.telcox.local/health
-curl http://audit.telcox.local/audit-events
+curl http://audit.telcox.local/audit-service/health
+curl http://audit.telcox.local/audit-service/audit-events
 ```
 
 Si quieres activar Traefik para otro microservicio:
@@ -300,15 +301,15 @@ helm upgrade --install customer-service services/customer_service/setup/helm \
 
 Documentacion OpenAPI por servicio:
 
-- `http://localhost:8001/docs`
-- `http://localhost:8002/docs`
-- `http://localhost:8003/docs`
-- `http://localhost:8004/docs`
-- `http://localhost:8005/docs`
-- `http://localhost:8006/docs`
-- `http://localhost:8007/docs`
-- `http://localhost:8008/docs`
-- `http://localhost:8009/docs`
+- `http://localhost:8001/customer-service/docs`
+- `http://localhost:8002/catalog-service/docs`
+- `http://localhost:8003/service-status-service/docs`
+- `http://localhost:8004/provisioning-service/docs`
+- `http://localhost:8005/billing-service/docs`
+- `http://localhost:8006/payment-service/docs`
+- `http://localhost:8007/notification-service/docs`
+- `http://localhost:8008/onboarding-service/docs`
+- `http://localhost:8009/audit-service/docs`
 
 ## Frontend recomendado
 

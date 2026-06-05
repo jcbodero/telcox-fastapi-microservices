@@ -22,6 +22,8 @@ app = FastAPI(
     title="TelcoX Service Status Service",
     description="CRUD basico para servicios activos, uso de datos, saldo y estado operativo.",
     version="1.0.0",
+    docs_url="/service-status-service/docs",
+    openapi_url="/service-status-service/openapi.json",
 )
 
 
@@ -49,31 +51,31 @@ active_services: dict[str, dict[str, Any]] = {
 }
 
 
-@app.get("/health", tags=["health"])
+@app.get("/service-status-service/health", tags=["health"])
 def health() -> dict[str, str]:
     return {"status": "ok", "service": "Service Status Service"}
 
 
-@app.get("/active-services", response_model=list[ActiveServiceResponse], tags=["active-services"])
+@app.get("/service-status-service/active-services", response_model=list[ActiveServiceResponse], tags=["active-services"])
 def list_active_services() -> list[dict[str, Any]]:
     return list(active_services.values())
 
 
-@app.post("/active-services", response_model=ActiveServiceResponse, status_code=status.HTTP_201_CREATED, tags=["active-services"])
+@app.post("/service-status-service/active-services", response_model=ActiveServiceResponse, status_code=status.HTTP_201_CREATED, tags=["active-services"])
 def create_active_service(payload: ActiveServicePayload) -> dict[str, Any]:
     active_service = build_active_service(payload.data)
     active_services[active_service["id"]] = active_service
     return active_service
 
 
-@app.get("/active-services/{active_service_id}", response_model=ActiveServiceResponse, tags=["active-services"])
+@app.get("/service-status-service/active-services/{active_service_id}", response_model=ActiveServiceResponse, tags=["active-services"])
 def get_active_service(active_service_id: str) -> dict[str, Any]:
     if active_service_id not in active_services:
         raise HTTPException(status_code=404, detail="Active service not found")
     return active_services[active_service_id]
 
 
-@app.put("/active-services/{active_service_id}", response_model=ActiveServiceResponse, tags=["active-services"])
+@app.put("/service-status-service/active-services/{active_service_id}", response_model=ActiveServiceResponse, tags=["active-services"])
 def replace_active_service(active_service_id: str, payload: ActiveServicePayload) -> dict[str, Any]:
     if active_service_id not in active_services:
         raise HTTPException(status_code=404, detail="Active service not found")
@@ -82,7 +84,7 @@ def replace_active_service(active_service_id: str, payload: ActiveServicePayload
     return active_service
 
 
-@app.patch("/active-services/{active_service_id}", response_model=ActiveServiceResponse, tags=["active-services"])
+@app.patch("/service-status-service/active-services/{active_service_id}", response_model=ActiveServiceResponse, tags=["active-services"])
 def update_active_service(active_service_id: str, payload: ActiveServicePayload) -> dict[str, Any]:
     if active_service_id not in active_services:
         raise HTTPException(status_code=404, detail="Active service not found")
@@ -90,8 +92,9 @@ def update_active_service(active_service_id: str, payload: ActiveServicePayload)
     return active_services[active_service_id]
 
 
-@app.delete("/active-services/{active_service_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["active-services"])
+@app.delete("/service-status-service/active-services/{active_service_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["active-services"])
 def delete_active_service(active_service_id: str) -> None:
     if active_service_id not in active_services:
         raise HTTPException(status_code=404, detail="Active service not found")
     del active_services[active_service_id]
+

@@ -22,6 +22,8 @@ app = FastAPI(
     title="TelcoX Provisioning Service",
     description="CRUD basico de ordenes de provision para altas, cambios de plan y servicios adicionales.",
     version="1.0.0",
+    docs_url="/provisioning-service/docs",
+    openapi_url="/provisioning-service/openapi.json",
 )
 
 
@@ -48,31 +50,31 @@ orders: dict[str, dict[str, Any]] = {
 }
 
 
-@app.get("/health", tags=["health"])
+@app.get("/provisioning-service/health", tags=["health"])
 def health() -> dict[str, str]:
     return {"status": "ok", "service": "Provisioning Service"}
 
 
-@app.get("/orders", response_model=list[OrderResponse], tags=["orders"])
+@app.get("/provisioning-service/orders", response_model=list[OrderResponse], tags=["orders"])
 def list_orders() -> list[dict[str, Any]]:
     return list(orders.values())
 
 
-@app.post("/orders", response_model=OrderResponse, status_code=status.HTTP_201_CREATED, tags=["orders"])
+@app.post("/provisioning-service/orders", response_model=OrderResponse, status_code=status.HTTP_201_CREATED, tags=["orders"])
 def create_order(payload: OrderPayload) -> dict[str, Any]:
     order = build_order(payload.data)
     orders[order["id"]] = order
     return order
 
 
-@app.get("/orders/{order_id}", response_model=OrderResponse, tags=["orders"])
+@app.get("/provisioning-service/orders/{order_id}", response_model=OrderResponse, tags=["orders"])
 def get_order(order_id: str) -> dict[str, Any]:
     if order_id not in orders:
         raise HTTPException(status_code=404, detail="Order not found")
     return orders[order_id]
 
 
-@app.put("/orders/{order_id}", response_model=OrderResponse, tags=["orders"])
+@app.put("/provisioning-service/orders/{order_id}", response_model=OrderResponse, tags=["orders"])
 def replace_order(order_id: str, payload: OrderPayload) -> dict[str, Any]:
     if order_id not in orders:
         raise HTTPException(status_code=404, detail="Order not found")
@@ -81,7 +83,7 @@ def replace_order(order_id: str, payload: OrderPayload) -> dict[str, Any]:
     return order
 
 
-@app.patch("/orders/{order_id}", response_model=OrderResponse, tags=["orders"])
+@app.patch("/provisioning-service/orders/{order_id}", response_model=OrderResponse, tags=["orders"])
 def update_order(order_id: str, payload: OrderPayload) -> dict[str, Any]:
     if order_id not in orders:
         raise HTTPException(status_code=404, detail="Order not found")
@@ -89,8 +91,9 @@ def update_order(order_id: str, payload: OrderPayload) -> dict[str, Any]:
     return orders[order_id]
 
 
-@app.delete("/orders/{order_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["orders"])
+@app.delete("/provisioning-service/orders/{order_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["orders"])
 def delete_order(order_id: str) -> None:
     if order_id not in orders:
         raise HTTPException(status_code=404, detail="Order not found")
     del orders[order_id]
+

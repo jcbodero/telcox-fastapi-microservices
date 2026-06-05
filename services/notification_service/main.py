@@ -22,6 +22,8 @@ app = FastAPI(
     title="TelcoX Notification Service",
     description="CRUD basico de notificaciones multicanal: SMS, email y push.",
     version="1.0.0",
+    docs_url="/notification-service/docs",
+    openapi_url="/notification-service/openapi.json",
 )
 
 
@@ -49,31 +51,31 @@ notifications: dict[str, dict[str, Any]] = {
 }
 
 
-@app.get("/health", tags=["health"])
+@app.get("/notification-service/health", tags=["health"])
 def health() -> dict[str, str]:
     return {"status": "ok", "service": "Notification Service"}
 
 
-@app.get("/notifications", response_model=list[NotificationResponse], tags=["notifications"])
+@app.get("/notification-service/notifications", response_model=list[NotificationResponse], tags=["notifications"])
 def list_notifications() -> list[dict[str, Any]]:
     return list(notifications.values())
 
 
-@app.post("/notifications", response_model=NotificationResponse, status_code=status.HTTP_201_CREATED, tags=["notifications"])
+@app.post("/notification-service/notifications", response_model=NotificationResponse, status_code=status.HTTP_201_CREATED, tags=["notifications"])
 def create_notification(payload: NotificationPayload) -> dict[str, Any]:
     notification = build_notification(payload.data)
     notifications[notification["id"]] = notification
     return notification
 
 
-@app.get("/notifications/{notification_id}", response_model=NotificationResponse, tags=["notifications"])
+@app.get("/notification-service/notifications/{notification_id}", response_model=NotificationResponse, tags=["notifications"])
 def get_notification(notification_id: str) -> dict[str, Any]:
     if notification_id not in notifications:
         raise HTTPException(status_code=404, detail="Notification not found")
     return notifications[notification_id]
 
 
-@app.put("/notifications/{notification_id}", response_model=NotificationResponse, tags=["notifications"])
+@app.put("/notification-service/notifications/{notification_id}", response_model=NotificationResponse, tags=["notifications"])
 def replace_notification(notification_id: str, payload: NotificationPayload) -> dict[str, Any]:
     if notification_id not in notifications:
         raise HTTPException(status_code=404, detail="Notification not found")
@@ -82,7 +84,7 @@ def replace_notification(notification_id: str, payload: NotificationPayload) -> 
     return notification
 
 
-@app.patch("/notifications/{notification_id}", response_model=NotificationResponse, tags=["notifications"])
+@app.patch("/notification-service/notifications/{notification_id}", response_model=NotificationResponse, tags=["notifications"])
 def update_notification(notification_id: str, payload: NotificationPayload) -> dict[str, Any]:
     if notification_id not in notifications:
         raise HTTPException(status_code=404, detail="Notification not found")
@@ -90,8 +92,9 @@ def update_notification(notification_id: str, payload: NotificationPayload) -> d
     return notifications[notification_id]
 
 
-@app.delete("/notifications/{notification_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["notifications"])
+@app.delete("/notification-service/notifications/{notification_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["notifications"])
 def delete_notification(notification_id: str) -> None:
     if notification_id not in notifications:
         raise HTTPException(status_code=404, detail="Notification not found")
     del notifications[notification_id]
+

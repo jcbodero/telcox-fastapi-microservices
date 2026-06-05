@@ -22,6 +22,8 @@ app = FastAPI(
     title="TelcoX Payment Service",
     description="CRUD basico de pagos e historial. Simula integracion con gateway de pagos.",
     version="1.0.0",
+    docs_url="/payment-service/docs",
+    openapi_url="/payment-service/openapi.json",
 )
 
 
@@ -50,31 +52,31 @@ payments: dict[str, dict[str, Any]] = {
 }
 
 
-@app.get("/health", tags=["health"])
+@app.get("/payment-service/health", tags=["health"])
 def health() -> dict[str, str]:
     return {"status": "ok", "service": "Payment Service"}
 
 
-@app.get("/payments", response_model=list[PaymentResponse], tags=["payments"])
+@app.get("/payment-service/payments", response_model=list[PaymentResponse], tags=["payments"])
 def list_payments() -> list[dict[str, Any]]:
     return list(payments.values())
 
 
-@app.post("/payments", response_model=PaymentResponse, status_code=status.HTTP_201_CREATED, tags=["payments"])
+@app.post("/payment-service/payments", response_model=PaymentResponse, status_code=status.HTTP_201_CREATED, tags=["payments"])
 def create_payment(payload: PaymentPayload) -> dict[str, Any]:
     payment = build_payment(payload.data)
     payments[payment["id"]] = payment
     return payment
 
 
-@app.get("/payments/{payment_id}", response_model=PaymentResponse, tags=["payments"])
+@app.get("/payment-service/payments/{payment_id}", response_model=PaymentResponse, tags=["payments"])
 def get_payment(payment_id: str) -> dict[str, Any]:
     if payment_id not in payments:
         raise HTTPException(status_code=404, detail="Payment not found")
     return payments[payment_id]
 
 
-@app.put("/payments/{payment_id}", response_model=PaymentResponse, tags=["payments"])
+@app.put("/payment-service/payments/{payment_id}", response_model=PaymentResponse, tags=["payments"])
 def replace_payment(payment_id: str, payload: PaymentPayload) -> dict[str, Any]:
     if payment_id not in payments:
         raise HTTPException(status_code=404, detail="Payment not found")
@@ -83,7 +85,7 @@ def replace_payment(payment_id: str, payload: PaymentPayload) -> dict[str, Any]:
     return payment
 
 
-@app.patch("/payments/{payment_id}", response_model=PaymentResponse, tags=["payments"])
+@app.patch("/payment-service/payments/{payment_id}", response_model=PaymentResponse, tags=["payments"])
 def update_payment(payment_id: str, payload: PaymentPayload) -> dict[str, Any]:
     if payment_id not in payments:
         raise HTTPException(status_code=404, detail="Payment not found")
@@ -91,8 +93,9 @@ def update_payment(payment_id: str, payload: PaymentPayload) -> dict[str, Any]:
     return payments[payment_id]
 
 
-@app.delete("/payments/{payment_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["payments"])
+@app.delete("/payment-service/payments/{payment_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["payments"])
 def delete_payment(payment_id: str) -> None:
     if payment_id not in payments:
         raise HTTPException(status_code=404, detail="Payment not found")
     del payments[payment_id]
+

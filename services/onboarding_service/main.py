@@ -22,6 +22,8 @@ app = FastAPI(
     title="TelcoX Onboarding Service",
     description="CRUD basico de solicitudes de onboarding con documento y biometria facial.",
     version="1.0.0",
+    docs_url="/onboarding-service/docs",
+    openapi_url="/onboarding-service/openapi.json",
 )
 
 
@@ -48,31 +50,31 @@ onboarding_cases: dict[str, dict[str, Any]] = {
 }
 
 
-@app.get("/health", tags=["health"])
+@app.get("/onboarding-service/health", tags=["health"])
 def health() -> dict[str, str]:
     return {"status": "ok", "service": "Onboarding Service"}
 
 
-@app.get("/onboarding-cases", response_model=list[OnboardingCaseResponse], tags=["onboarding-cases"])
+@app.get("/onboarding-service/onboarding-cases", response_model=list[OnboardingCaseResponse], tags=["onboarding-cases"])
 def list_onboarding_cases() -> list[dict[str, Any]]:
     return list(onboarding_cases.values())
 
 
-@app.post("/onboarding-cases", response_model=OnboardingCaseResponse, status_code=status.HTTP_201_CREATED, tags=["onboarding-cases"])
+@app.post("/onboarding-service/onboarding-cases", response_model=OnboardingCaseResponse, status_code=status.HTTP_201_CREATED, tags=["onboarding-cases"])
 def create_onboarding_case(payload: OnboardingCasePayload) -> dict[str, Any]:
     onboarding_case = build_onboarding_case(payload.data)
     onboarding_cases[onboarding_case["id"]] = onboarding_case
     return onboarding_case
 
 
-@app.get("/onboarding-cases/{case_id}", response_model=OnboardingCaseResponse, tags=["onboarding-cases"])
+@app.get("/onboarding-service/onboarding-cases/{case_id}", response_model=OnboardingCaseResponse, tags=["onboarding-cases"])
 def get_onboarding_case(case_id: str) -> dict[str, Any]:
     if case_id not in onboarding_cases:
         raise HTTPException(status_code=404, detail="Onboarding case not found")
     return onboarding_cases[case_id]
 
 
-@app.put("/onboarding-cases/{case_id}", response_model=OnboardingCaseResponse, tags=["onboarding-cases"])
+@app.put("/onboarding-service/onboarding-cases/{case_id}", response_model=OnboardingCaseResponse, tags=["onboarding-cases"])
 def replace_onboarding_case(case_id: str, payload: OnboardingCasePayload) -> dict[str, Any]:
     if case_id not in onboarding_cases:
         raise HTTPException(status_code=404, detail="Onboarding case not found")
@@ -81,7 +83,7 @@ def replace_onboarding_case(case_id: str, payload: OnboardingCasePayload) -> dic
     return onboarding_case
 
 
-@app.patch("/onboarding-cases/{case_id}", response_model=OnboardingCaseResponse, tags=["onboarding-cases"])
+@app.patch("/onboarding-service/onboarding-cases/{case_id}", response_model=OnboardingCaseResponse, tags=["onboarding-cases"])
 def update_onboarding_case(case_id: str, payload: OnboardingCasePayload) -> dict[str, Any]:
     if case_id not in onboarding_cases:
         raise HTTPException(status_code=404, detail="Onboarding case not found")
@@ -89,8 +91,9 @@ def update_onboarding_case(case_id: str, payload: OnboardingCasePayload) -> dict
     return onboarding_cases[case_id]
 
 
-@app.delete("/onboarding-cases/{case_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["onboarding-cases"])
+@app.delete("/onboarding-service/onboarding-cases/{case_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["onboarding-cases"])
 def delete_onboarding_case(case_id: str) -> None:
     if case_id not in onboarding_cases:
         raise HTTPException(status_code=404, detail="Onboarding case not found")
     del onboarding_cases[case_id]
+

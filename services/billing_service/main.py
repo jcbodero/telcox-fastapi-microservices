@@ -22,6 +22,8 @@ app = FastAPI(
     title="TelcoX Billing Service",
     description="CRUD basico de facturas y reenvio logico de comprobantes.",
     version="1.0.0",
+    docs_url="/billing-service/docs",
+    openapi_url="/billing-service/openapi.json",
 )
 
 
@@ -49,31 +51,31 @@ invoices: dict[str, dict[str, Any]] = {
 }
 
 
-@app.get("/health", tags=["health"])
+@app.get("/billing-service/health", tags=["health"])
 def health() -> dict[str, str]:
     return {"status": "ok", "service": "Billing Service"}
 
 
-@app.get("/invoices", response_model=list[InvoiceResponse], tags=["invoices"])
+@app.get("/billing-service/invoices", response_model=list[InvoiceResponse], tags=["invoices"])
 def list_invoices() -> list[dict[str, Any]]:
     return list(invoices.values())
 
 
-@app.post("/invoices", response_model=InvoiceResponse, status_code=status.HTTP_201_CREATED, tags=["invoices"])
+@app.post("/billing-service/invoices", response_model=InvoiceResponse, status_code=status.HTTP_201_CREATED, tags=["invoices"])
 def create_invoice(payload: InvoicePayload) -> dict[str, Any]:
     invoice = build_invoice(payload.data)
     invoices[invoice["id"]] = invoice
     return invoice
 
 
-@app.get("/invoices/{invoice_id}", response_model=InvoiceResponse, tags=["invoices"])
+@app.get("/billing-service/invoices/{invoice_id}", response_model=InvoiceResponse, tags=["invoices"])
 def get_invoice(invoice_id: str) -> dict[str, Any]:
     if invoice_id not in invoices:
         raise HTTPException(status_code=404, detail="Invoice not found")
     return invoices[invoice_id]
 
 
-@app.put("/invoices/{invoice_id}", response_model=InvoiceResponse, tags=["invoices"])
+@app.put("/billing-service/invoices/{invoice_id}", response_model=InvoiceResponse, tags=["invoices"])
 def replace_invoice(invoice_id: str, payload: InvoicePayload) -> dict[str, Any]:
     if invoice_id not in invoices:
         raise HTTPException(status_code=404, detail="Invoice not found")
@@ -82,7 +84,7 @@ def replace_invoice(invoice_id: str, payload: InvoicePayload) -> dict[str, Any]:
     return invoice
 
 
-@app.patch("/invoices/{invoice_id}", response_model=InvoiceResponse, tags=["invoices"])
+@app.patch("/billing-service/invoices/{invoice_id}", response_model=InvoiceResponse, tags=["invoices"])
 def update_invoice(invoice_id: str, payload: InvoicePayload) -> dict[str, Any]:
     if invoice_id not in invoices:
         raise HTTPException(status_code=404, detail="Invoice not found")
@@ -90,8 +92,9 @@ def update_invoice(invoice_id: str, payload: InvoicePayload) -> dict[str, Any]:
     return invoices[invoice_id]
 
 
-@app.delete("/invoices/{invoice_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["invoices"])
+@app.delete("/billing-service/invoices/{invoice_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["invoices"])
 def delete_invoice(invoice_id: str) -> None:
     if invoice_id not in invoices:
         raise HTTPException(status_code=404, detail="Invoice not found")
     del invoices[invoice_id]
+

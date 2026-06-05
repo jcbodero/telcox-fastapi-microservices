@@ -22,6 +22,8 @@ app = FastAPI(
     title="TelcoX Catalog Service",
     description="CRUD basico del catalogo de planes, paquetes y servicios adicionales.",
     version="1.0.0",
+    docs_url="/catalog-service/docs",
+    openapi_url="/catalog-service/openapi.json",
 )
 
 
@@ -48,31 +50,31 @@ products: dict[str, dict[str, Any]] = {
 }
 
 
-@app.get("/health", tags=["health"])
+@app.get("/catalog-service/health", tags=["health"])
 def health() -> dict[str, str]:
     return {"status": "ok", "service": "Catalog Service"}
 
 
-@app.get("/products", response_model=list[ProductResponse], tags=["products"])
+@app.get("/catalog-service/products", response_model=list[ProductResponse], tags=["products"])
 def list_products() -> list[dict[str, Any]]:
     return list(products.values())
 
 
-@app.post("/products", response_model=ProductResponse, status_code=status.HTTP_201_CREATED, tags=["products"])
+@app.post("/catalog-service/products", response_model=ProductResponse, status_code=status.HTTP_201_CREATED, tags=["products"])
 def create_product(payload: ProductPayload) -> dict[str, Any]:
     product = build_product(payload.data)
     products[product["id"]] = product
     return product
 
 
-@app.get("/products/{product_id}", response_model=ProductResponse, tags=["products"])
+@app.get("/catalog-service/products/{product_id}", response_model=ProductResponse, tags=["products"])
 def get_product(product_id: str) -> dict[str, Any]:
     if product_id not in products:
         raise HTTPException(status_code=404, detail="Product not found")
     return products[product_id]
 
 
-@app.put("/products/{product_id}", response_model=ProductResponse, tags=["products"])
+@app.put("/catalog-service/products/{product_id}", response_model=ProductResponse, tags=["products"])
 def replace_product(product_id: str, payload: ProductPayload) -> dict[str, Any]:
     if product_id not in products:
         raise HTTPException(status_code=404, detail="Product not found")
@@ -81,7 +83,7 @@ def replace_product(product_id: str, payload: ProductPayload) -> dict[str, Any]:
     return product
 
 
-@app.patch("/products/{product_id}", response_model=ProductResponse, tags=["products"])
+@app.patch("/catalog-service/products/{product_id}", response_model=ProductResponse, tags=["products"])
 def update_product(product_id: str, payload: ProductPayload) -> dict[str, Any]:
     if product_id not in products:
         raise HTTPException(status_code=404, detail="Product not found")
@@ -89,8 +91,9 @@ def update_product(product_id: str, payload: ProductPayload) -> dict[str, Any]:
     return products[product_id]
 
 
-@app.delete("/products/{product_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["products"])
+@app.delete("/catalog-service/products/{product_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["products"])
 def delete_product(product_id: str) -> None:
     if product_id not in products:
         raise HTTPException(status_code=404, detail="Product not found")
     del products[product_id]
+

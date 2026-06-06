@@ -351,6 +351,55 @@ PUBLIC_HOST=reto1.telcox.site
 
 El workflow de `audit_service` usa `PUBLIC_HOST` para actualizar el host del Ingress durante el despliegue. Si no existe `PUBLIC_HOST`, usa `DUCKDNS_HOST` como respaldo.
 
+## Autenticacion OAuth2/OIDC con Keycloak
+
+El proyecto incluye una propuesta desplegable de Keycloak en el mismo dominio bajo otra ruta:
+
+```text
+https://reto1.telcox.site/auth
+```
+
+Archivos:
+
+```text
+infra/identity/keycloak
+```
+
+El flujo recomendado para web y movil es:
+
+```text
+Authorization Code Flow + PKCE
+```
+
+Para llamadas internas entre microservicios:
+
+```text
+Client Credentials Flow
+```
+
+Despliegue:
+
+```bash
+KUBECONFIG=/home/julio/.kube/config kubectl create namespace identity
+KUBECONFIG=/home/julio/.kube/config kubectl create secret generic keycloak-admin \
+  --namespace identity \
+  --from-literal=username=admin \
+  --from-literal=password='PASSWORD_ADMIN'
+KUBECONFIG=/home/julio/.kube/config kubectl create secret generic keycloak-db \
+  --namespace identity \
+  --from-literal=password='PASSWORD_DB'
+KUBECONFIG=/home/julio/.kube/config helm upgrade --install keycloak ./infra/identity/keycloak/setup/helm \
+  --namespace identity \
+  --create-namespace \
+  --set global.host=reto1.telcox.site
+```
+
+Mas detalle:
+
+```text
+infra/identity/keycloak/README.md
+```
+
 Documentacion OpenAPI por servicio:
 
 - `http://localhost:8001/customer-service/docs`

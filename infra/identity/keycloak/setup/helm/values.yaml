@@ -1,0 +1,50 @@
+global:
+  host: reto1.telcox.site
+
+keycloak:
+  image:
+    repository: quay.io/keycloak/keycloak
+    tag: "26.0.0"
+    pullPolicy: IfNotPresent
+  replicaCount: 1
+  basePath: /auth
+  adminSecretName: keycloak-admin
+  dbSecretName: keycloak-db
+  resources:
+    requests:
+      cpu: 250m
+      memory: 768Mi
+    limits:
+      cpu: "1"
+      memory: 1536Mi
+
+postgresql:
+  image:
+    repository: postgres
+    tag: "16-alpine"
+    pullPolicy: IfNotPresent
+  database: keycloak
+  username: keycloak
+  secretName: keycloak-db
+  storage:
+    size: 2Gi
+    storageClassName: ""
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8080
+
+ingress:
+  enabled: true
+  className: traefik
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"

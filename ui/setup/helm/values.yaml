@@ -28,6 +28,12 @@ ingress:
 manuals:
   enabled: true
   path: /manuales
+  appAuth:
+    enabled: true
+    username: manuales
+    existingSecret: telcox-manuals-app-auth
+    passwordKey: password
+    realm: TelcoX Manuales
   auth:
     enabled: true
     existingSecret: telcox-manuals-basic-auth

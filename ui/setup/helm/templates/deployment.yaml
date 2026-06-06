@@ -35,6 +35,18 @@ spec:
             - name: http
               containerPort: {{ .Values.service.targetPort }}
               protocol: TCP
+          {{- if and .Values.manuals.enabled .Values.manuals.appAuth.enabled }}
+          env:
+            - name: MANUALS_BASIC_AUTH_USER
+              value: {{ .Values.manuals.appAuth.username | quote }}
+            - name: MANUALS_BASIC_AUTH_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.manuals.appAuth.existingSecret | quote }}
+                  key: {{ .Values.manuals.appAuth.passwordKey | quote }}
+            - name: MANUALS_BASIC_AUTH_REALM
+              value: {{ .Values.manuals.appAuth.realm | quote }}
+          {{- end }}
           readinessProbe:
             httpGet:
               path: /

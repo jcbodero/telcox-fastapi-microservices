@@ -31,6 +31,9 @@ env:
   NEXT_PUBLIC_KEYCLOAK_CLIENT_ID: telcox-web
   MANUALS_BASIC_AUTH_SECRET_NAME: telcox-manuals-basic-auth
   MANUALS_BASIC_AUTH_USERS: ${{ secrets.MANUALS_BASIC_AUTH_USERS }}
+  MANUALS_APP_AUTH_SECRET_NAME: telcox-manuals-app-auth
+  MANUALS_APP_AUTH_USER: ${{ vars.MANUALS_APP_AUTH_USER }}
+  MANUALS_APP_AUTH_PASSWORD: ${{ secrets.MANUALS_APP_AUTH_PASSWORD }}
 
 jobs:
   build-push-and-deploy:
@@ -100,20 +103,38 @@ jobs:
           kubectl get nodes
           helm list --namespace "${NAMESPACE}"
 
+      - name: Configure manuals app auth secret
+        shell: bash
+        run: |
+          if [ -z "${MANUALS_APP_AUTH_PASSWORD}" ]; then
+            echo "ERROR: Missing MANUALS_APP_AUTH_PASSWORD secret."
+            echo "Create it in GitHub Secrets before deploying /manuales."
+            exit 1
+          fi
+
+          kubectl create secret generic "${MANUALS_APP_AUTH_SECRET_NAME}" \
+            --namespace "${NAMESPACE}" \
+            --from-literal=password="${MANUALS_APP_AUTH_PASSWORD}" \
+            --dry-run=client -o yaml | kubectl apply -f -
+
       - name: Configure manuals Basic Auth
         shell: bash
         run: |
           if [ -z "${MANUALS_BASIC_AUTH_USERS}" ]; then
-            echo "ERROR: Missing MANUALS_BASIC_AUTH_USERS secret."
-            echo "Create it with an htpasswd line, for example:"
+            echo "WARNING: Missing MANUALS_BASIC_AUTH_USERS secret."
+            echo "Traefik Basic Auth middleware will be disabled for this deploy."
+            echo "The Next.js /manuales middleware remains enabled."
+            echo "To enable Traefik Basic Auth too, create it with an htpasswd line:"
             echo "  htpasswd -nbB usuario 'contrasena-segura'"
-            exit 1
+            echo "MANUALS_TRAEFIK_AUTH_ENABLED=false" >> "$GITHUB_ENV"
+            exit 0
           fi
 
           kubectl create secret generic "${MANUALS_BASIC_AUTH_SECRET_NAME}" \
             --namespace "${NAMESPACE}" \
             --from-literal=users="${MANUALS_BASIC_AUTH_USERS}" \
             --dry-run=client -o yaml | kubectl apply -f -
+          echo "MANUALS_TRAEFIK_AUTH_ENABLED=true" >> "$GITHUB_ENV"
 
       - name: Deploy with Helm
         shell: bash
@@ -126,7 +147,10 @@ jobs:
             --set image.repository="${IMAGE_NAME}" \
             --set image.tag="${IMAGE_TAG}" \
             --set ingress.host="${PUBLIC_HOST}" \
-            --set manuals.auth.existingSecret="${MANUALS_BASIC_AUTH_SECRET_NAME}"
+            --set manuals.auth.enabled="${MANUALS_TRAEFIK_AUTH_ENABLED}" \
+            --set manuals.auth.existingSecret="${MANUALS_BASIC_AUTH_SECRET_NAME}" \
+            --set-string manuals.appAuth.username="${MANUALS_APP_AUTH_USER}" \
+            --set manuals.appAuth.existingSecret="${MANUALS_APP_AUTH_SECRET_NAME}"
 
       - name: Verify Kubernetes rollout
         shell: bash

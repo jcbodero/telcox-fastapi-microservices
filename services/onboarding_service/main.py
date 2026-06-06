@@ -35,11 +35,20 @@ class IdentityVerificationPayload(BaseModel):
     document_back_image: str | None = None
     selfie_image: str | None = None
     consent_accepted: bool = False
+    consent_version: str = "2026-06"
     requested_auth_methods: list[str] = Field(default_factory=lambda: ["password", "passkey", "device_biometric"])
 
 
 class AuthEnrollmentPayload(BaseModel):
     auth_methods: list[str] = Field(default_factory=lambda: ["password", "passkey"])
+
+
+class ConsentPayload(BaseModel):
+    user_id: str
+    accepted: bool = False
+    consent_version: str = "2026-06"
+    consent_scope: list[str] = Field(default_factory=lambda: ["personal_data", "documents", "biometrics"])
+    source: str = "web"
 
 
 class OnboardingCaseResponse(BaseModel):
@@ -51,6 +60,10 @@ class OnboardingCaseResponse(BaseModel):
     email: str | None = None
     phone: str | None = None
     document_type: str | None = None
+    consent_accepted: bool | None = None
+    consent_version: str | None = None
+    consent_accepted_at: str | None = None
+    consent_scope: list[str] | None = None
     document_check: str | None = None
     face_match: str | None = None
     liveness_check: str | None = None
@@ -78,6 +91,9 @@ SENSITIVE_KEYS = {
     "document_back_image",
     "selfie_image",
     "biometric_template",
+    "document_front_ref",
+    "document_back_ref",
+    "selfie_ref",
 }
 
 
@@ -104,6 +120,21 @@ def payload_to_dict(value: Any) -> dict[str, Any] | None:
     if isinstance(value, dict):
         return redact(value)
     return {"value": str(value)}
+
+
+def build_privacy_policy() -> dict[str, Any]:
+    return {
+        "policy_name": "TelcoX Privacy and Biometrics Policy",
+        "version": "2026-06",
+        "effective_date": "2026-06-06",
+        "data_categories": ["personal_data", "documents", "biometrics", "audit_logs"],
+        "purposes": ["identity_verification", "service_access", "fraud_prevention", "regulatory_compliance"],
+        "retention": {
+            "audit_logs": "policy_based_retention",
+            "kyc_evidence": "minimum_required",
+            "biometric_references": "ephemeral_or_provider_managed",
+        },
+    }
 
 
 class AuditManager:
@@ -263,6 +294,7 @@ def on_startup() -> None:
     port = os.environ.get("PORT", os.environ.get("SERVICE_PORT", "8008"))
     logging.info("Onboarding Service starting on port %s", port)
     logging.info("KYC Service URL: %s", KYC_SERVICE_URL)
+    logging.info("Privacy policy version: %s", build_privacy_policy()["version"])
 
 
 def evidence_ref(value: str | None) -> str | None:
@@ -270,6 +302,27 @@ def evidence_ref(value: str | None) -> str | None:
         return None
     digest = hashlib.sha256(value.encode("utf-8")).hexdigest()
     return f"sha256:{digest}"
+
+
+@app.get("/onboarding-service/privacy-policy", tags=["compliance"])
+def privacy_policy() -> dict[str, Any]:
+    return build_privacy_policy()
+
+
+@app.post("/onboarding-service/consent", tags=["compliance"])
+@audit_action("CONSENT", "PRIVACY_POLICY")
+def accept_consent(payload: ConsentPayload) -> dict[str, Any]:
+    if not payload.accepted:
+        raise HTTPException(status_code=400, detail="Explicit consent is required")
+    return {
+        "id": f"consent-{payload.user_id}-{payload.consent_version}",
+        "user_id": payload.user_id,
+        "accepted": True,
+        "consent_version": payload.consent_version,
+        "consent_scope": payload.consent_scope,
+        "accepted_at": utc_now(),
+        "source": payload.source,
+    }
 
 
 def evaluate_identity(data: dict[str, Any]) -> dict[str, Any]:
@@ -411,6 +464,8 @@ def create_onboarding_case(payload: OnboardingCasePayload) -> dict[str, Any]:
 @audit_action("VERIFY", "IDENTITY")
 def verify_onboarding(payload: IdentityVerificationPayload) -> dict[str, Any]:
     data = payload.model_dump()
+    if not data.get("consent_accepted"):
+        raise HTTPException(status_code=400, detail="Explicit consent is required before biometric onboarding")
 
     # --- Call External KYC Service ---
     kyc_verification_id: str | None = None
@@ -460,10 +515,13 @@ def verify_onboarding(payload: IdentityVerificationPayload) -> dict[str, Any]:
             "email": data.get("email"),
             "phone": data.get("phone"),
             "document_type": data.get("document_type"),
+            "consent_accepted": True,
+            "consent_version": data.get("consent_version", "2026-06"),
+            "consent_accepted_at": utc_now(),
+            "consent_scope": ["personal_data", "documents", "biometrics"],
             "document_front_ref": evidence_ref(data.get("document_front_image")),
             "document_back_ref": evidence_ref(data.get("document_back_image")),
             "selfie_ref": evidence_ref(data.get("selfie_image")),
-            "consent_accepted": data.get("consent_accepted"),
             "kyc_verification_id": kyc_verification_id,
             "kyc_provider_response": kyc_provider_response,
             "kyc_error": kyc_error,
@@ -495,6 +553,26 @@ def enroll_auth_methods(case_id: str, payload: AuthEnrollmentPayload) -> dict[st
         "updated_at": utc_now(),
     }
     return onboarding_cases[case_id]
+
+
+@app.get("/onboarding-service/privacy-export/{case_id}", tags=["compliance"])
+def export_privacy_trail(case_id: str) -> dict[str, Any]:
+    case = onboarding_cases.get(case_id)
+    if not case:
+        raise HTTPException(status_code=404, detail="Onboarding case not found")
+    return {
+        "case_id": case_id,
+        "consent_accepted": case.get("consent_accepted"),
+        "consent_version": case.get("consent_version"),
+        "consent_accepted_at": case.get("consent_accepted_at"),
+        "data_subject_fields": {
+            "document_id": case.get("document_id"),
+            "full_name": case.get("full_name"),
+            "email": case.get("email"),
+            "phone": case.get("phone"),
+        },
+        "audit_events": audit_manager.events[-50:],
+    }
 
 
 @app.get("/onboarding-service/onboarding-cases/{case_id}", response_model=OnboardingCaseResponse, tags=["onboarding-cases"])

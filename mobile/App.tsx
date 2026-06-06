@@ -251,6 +251,7 @@ function OnboardingScreen({
   const [email, setEmail] = useState(user?.email || '')
   const [phone, setPhone] = useState('')
   const [documentType, setDocumentType] = useState('national_id')
+  const [consentAccepted, setConsentAccepted] = useState(false)
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
   const [result, setResult] = useState<OnboardingResult | null>(null)
@@ -297,8 +298,14 @@ function OnboardingScreen({
         document_front_image: 'mock_front',
         document_back_image: 'mock_back',
         selfie_image: 'mock_selfie',
-        consent_accepted: true,
+        consent_accepted: consentAccepted,
+        consent_version: '2026-06',
         requested_auth_methods: selectedMethods,
+      }
+      if (!consentAccepted) {
+        setMessage('Debes aceptar la politica de datos antes de continuar')
+        setLoading(false)
+        return
       }
       const response = await postJson('/onboarding-service/onboarding-cases/verify', payload, token)
       setResult(response)
@@ -345,6 +352,18 @@ function OnboardingScreen({
             <Text style={styles.secondaryButtonText}>Llenar aleatorio</Text>
           </Pressable>
         </View>
+      </View>
+
+      <View style={styles.card}>
+        <Text style={styles.sectionLabel}>Politica de datos</Text>
+        <Text style={styles.helper}>
+          Aceptas el tratamiento de datos personales, documentos de identidad y biometria para verificacion y acceso al sistema.
+        </Text>
+        <Pressable style={styles.toggleRow} onPress={() => setConsentAccepted((prev) => !prev)}>
+          <View style={[styles.toggle, consentAccepted && styles.toggleOn]} />
+          <Text style={styles.toggleLabel}>Acepto la politica de datos y consentimiento biometrico</Text>
+        </Pressable>
+        <Text style={styles.helper}>Version de politica: 2026-06</Text>
       </View>
 
       <View style={styles.card}>

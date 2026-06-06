@@ -17,6 +17,9 @@ ingress:
   className: traefik
   host: reto1.telcox.site
   path: /
+  tls:
+    enabled: true
+    secretName: telcox-ui-tls
   annotations:
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
     traefik.ingress.kubernetes.io/router.priority: "1"

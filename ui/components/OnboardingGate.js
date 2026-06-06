@@ -44,7 +44,7 @@ function Stepper({ current }) {
   )
 }
 
-export default function OnboardingGate({ user, getAccessToken, onComplete }) {
+export default function OnboardingGate({ user, getAccessToken, onComplete, login }) {
   const [step, setStep] = useState(1)
   const [documentId, setDocumentId] = useState(user?.username?.replace(/\D/g, '') || '')
   const [fullName, setFullName] = useState(user?.full_name || '')
@@ -61,6 +61,7 @@ export default function OnboardingGate({ user, getAccessToken, onComplete }) {
   const [camError, setCamError] = useState(false)
   const [progress, setProgress] = useState('')
   const [verifyResult, setVerifyResult] = useState(null)
+  const [consentAccepted, setConsentAccepted] = useState(false)
   const [methods, setMethods] = useState({
     password: true,
     passkey: true,
@@ -145,8 +146,13 @@ export default function OnboardingGate({ user, getAccessToken, onComplete }) {
         document_front_image: docFront || 'mock_front',
         document_back_image: docBack || 'mock_back',
         selfie_image: selfie || 'mock_selfie',
-        consent_accepted: true,
+        consent_accepted: consentAccepted,
+        consent_version: '2026-06',
         requested_auth_methods: selectedMethods,
+      }
+      if (!consentAccepted) {
+        setProgress('Debes aceptar la politica de datos antes de continuar')
+        return
       }
       const result = await postJsonDirect('onboarding', '/onboarding-service/onboarding-cases/verify', payload, token)
       setVerifyResult(result)
@@ -194,14 +200,32 @@ export default function OnboardingGate({ user, getAccessToken, onComplete }) {
           </span>
           <h1 className="text-3xl font-bold text-slate-900">Bienvenido, {user?.full_name?.split(' ')[0] || 'Usuario'}</h1>
           <p className="mt-1 text-sm text-slate-500">Completa tu verificacion para acceder al portal TelcoX.</p>
+          <button
+            type="button"
+            onClick={login}
+            className="mt-4 rounded-2xl border border-cyan-200 bg-white px-4 py-2.5 text-sm font-semibold text-cyan-700 transition hover:bg-cyan-50"
+          >
+            Ingresar con Keycloak
+          </button>
         </div>
 
         <div className="rounded-[32px] border border-white/80 bg-white/95 p-8 shadow-2xl shadow-cyan-900/10">
           <Stepper current={step} />
 
           {step === 1 && (
-            <div className="space-y-4">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="space-y-4">
+            <div className="rounded-2xl border border-cyan-100 bg-cyan-50/70 p-4">
+              <h2 className="text-sm font-bold text-slate-900">Politica de datos</h2>
+              <p className="mt-1 text-xs text-slate-600">
+                Aceptas el tratamiento de datos personales, documentos de identidad y biometria para la verificacion de identidad y acceso al sistema.
+              </p>
+              <label className="mt-3 flex cursor-pointer items-center gap-3">
+                <input type="checkbox" checked={consentAccepted} onChange={() => setConsentAccepted((prev) => !prev)} />
+                <span className="text-xs font-semibold text-slate-700">Acepto la politica de datos y el consentimiento biometrico</span>
+              </label>
+              <p className="mt-2 text-[10px] text-slate-500">Version de politica: 2026-06</p>
+            </div>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <h2 className="text-lg font-bold text-slate-900">Datos personales</h2>
                   <p className="text-xs text-slate-500">Ingresa tus datos tal como aparecen en tu documento oficial.</p>

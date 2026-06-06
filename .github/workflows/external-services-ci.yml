@@ -1,0 +1,147 @@
+name: External Sim Services CI/CD
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "services/external/**"
+      - "infra/external-sim/**"
+      - ".github/workflows/external-services-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: telcox-external-sim
+  cancel-in-progress: false
+
+env:
+  NAMESPACE: external-sim
+  CHART_PATH: infra/external-sim/setup/helm
+  KUBECONFIG: /home/julio/.kube/config
+  INGRESS_HOST: ${{ vars.PUBLIC_HOST || 'reto1.telcox.site' }}
+  RELEASE_NAME: external-sim
+
+jobs:
+  build-and-push:
+    name: Build and Push ${{ matrix.service }}
+    runs-on: self-hosted
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        include:
+          - service: sri_service
+            image: telcox-sri-service
+          - service: kyc_identity_mock
+            image: telcox-kyc-identity-mock
+          - service: network_oss_mock
+            image: telcox-network-oss-mock
+          - service: notification_gateway_mock
+            image: telcox-notification-gateway-mock
+          - service: payment_gateway_mock
+            image: telcox-payment-gateway-mock
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Decide build
+        id: changes
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "build=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          CHANGED_FILES="$(git diff --name-only HEAD^ HEAD || true)"
+          if echo "$CHANGED_FILES" | grep -qE "^(services/external/|infra/external-sim/|\.github/workflows/external-services-ci\.yml)"; then
+            echo "build=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "build=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set image metadata
+        if: steps.changes.outputs.build == 'true'
+        shell: bash
+        run: |
+          echo "IMAGE_NAME=ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}" >> "$GITHUB_ENV"
+          echo "IMAGE_TAG=${GITHUB_SHA}" >> "$GITHUB_ENV"
+          echo "DOCKERFILE=services/external/${{ matrix.service }}/Dockerfile" >> "$GITHUB_ENV"
+
+      - name: Compile service
+        if: steps.changes.outputs.build == 'true'
+        shell: bash
+        run: |
+          python3 -m compileall "services/external/${{ matrix.service }}"
+
+      - name: Login to GitHub Container Registry
+        if: steps.changes.outputs.build == 'true'
+        shell: bash
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: Build Docker image
+        if: steps.changes.outputs.build == 'true'
+        shell: bash
+        run: |
+          docker build \
+            -f "${DOCKERFILE}" \
+            -t "${IMAGE_NAME}:${IMAGE_TAG}" \
+            -t "${IMAGE_NAME}:latest" \
+            .
+
+      - name: Push Docker image
+        if: steps.changes.outputs.build == 'true'
+        shell: bash
+        run: |
+          docker push "${IMAGE_NAME}:${IMAGE_TAG}"
+          docker push "${IMAGE_NAME}:latest"
+
+  deploy:
+    name: Deploy external-sim namespace
+    runs-on: self-hosted
+    needs: build-and-push
+    if: always()
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Verify Kubernetes access
+        shell: bash
+        run: |
+          kubectl get nodes
+          helm list --namespace "${NAMESPACE}"
+
+      - name: Deploy external services
+        shell: bash
+        run: |
+          helm upgrade --install "${RELEASE_NAME}" "${CHART_PATH}" \
+            --namespace "${NAMESPACE}" \
+            --create-namespace \
+            --wait \
+            --timeout 8m \
+            --set global.host="${INGRESS_HOST}"
+
+      - name: Verify rollout
+        shell: bash
+        run: |
+          kubectl rollout status deployment/sri-service --namespace "${NAMESPACE}" --timeout=300s
+          kubectl rollout status deployment/kyc-identity-mock --namespace "${NAMESPACE}" --timeout=300s
+          kubectl rollout status deployment/network-oss-mock --namespace "${NAMESPACE}" --timeout=300s
+          kubectl rollout status deployment/notification-gateway-mock --namespace "${NAMESPACE}" --timeout=300s
+          kubectl rollout status deployment/payment-gateway-mock --namespace "${NAMESPACE}" --timeout=300s
+
+      - name: Show diagnostics on failure
+        if: failure()
+        shell: bash
+        run: |
+          kubectl get pods,svc,ingress --namespace "${NAMESPACE}" -o wide
+          kubectl describe pods --namespace "${NAMESPACE}" || true
+          kubectl logs --namespace "${NAMESPACE}" -l app.kubernetes.io/instance="${RELEASE_NAME}" --tail=100 || true

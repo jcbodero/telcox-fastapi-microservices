@@ -1,4 +1,4 @@
-name: Observability Deploy
+name: Infraestructura
 
 on:
   workflow_dispatch:
@@ -60,4 +60,3 @@ jobs:
           kubectl logs --namespace "${NAMESPACE}" -l app.kubernetes.io/name=grafana --tail=100 || true
           kubectl logs --namespace "${NAMESPACE}" -l app.kubernetes.io/name=loki --tail=100 || true
           kubectl logs --namespace "${NAMESPACE}" -l app.kubernetes.io/name=promtail --tail=100 || true
-

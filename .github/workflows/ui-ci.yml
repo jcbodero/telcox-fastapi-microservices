@@ -1,13 +1,12 @@
-name: Audit Service CI/CD
+name: UI CI/CD
 
 on:
   push:
     branches:
       - main
     paths:
-      - "requirements.txt"
-      - "services/audit_service/**"
-      - ".github/workflows/audit-service-ci.yml"
+      - "ui/**"
+      - ".github/workflows/ui-ci.yml"
   workflow_dispatch:
 
 permissions:
@@ -15,20 +14,22 @@ permissions:
   packages: write
 
 concurrency:
-  group: telcox-audit-service
+  group: telcox-ui
   cancel-in-progress: false
 
 env:
-  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/telcox-audit-service
-  RELEASE_NAME: audit-service
+  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/telcox-ui
+  RELEASE_NAME: telcox-ui
   NAMESPACE: telcox
-  CHART_PATH: services/audit_service/setup/helm
+  CHART_PATH: ui/setup/helm
   KUBECONFIG: /home/julio/.kube/config
-  INGRESS_HOST: ${{ vars.PUBLIC_HOST || 'reto1.telcox.site' }}
+  PUBLIC_HOST: ${{ vars.PUBLIC_HOST || 'reto1.telcox.site' }}
+  NEXT_PUBLIC_KEYCLOAK_REALM: telcox
+  NEXT_PUBLIC_KEYCLOAK_CLIENT_ID: telcox-web
 
 jobs:
   build-push-and-deploy:
-    name: Build, Push and Deploy Audit Service
+    name: Build, Push and Deploy UI
     runs-on: self-hosted
 
     steps:
@@ -39,11 +40,18 @@ jobs:
         shell: bash
         run: |
           echo "IMAGE_TAG=${GITHUB_SHA}" >> "$GITHUB_ENV"
+          echo "NEXT_PUBLIC_KEYCLOAK_URL=https://${PUBLIC_HOST}/auth" >> "$GITHUB_ENV"
 
-      - name: Compile Audit Service
+      - name: Build Next.js
         shell: bash
+        working-directory: ui
         run: |
-          python3 -m compileall services/audit_service
+          npm ci
+          NEXT_PUBLIC_KEYCLOAK_URL="${NEXT_PUBLIC_KEYCLOAK_URL}" \
+          NEXT_PUBLIC_KEYCLOAK_REALM="${NEXT_PUBLIC_KEYCLOAK_REALM}" \
+          NEXT_PUBLIC_KEYCLOAK_CLIENT_ID="${NEXT_PUBLIC_KEYCLOAK_CLIENT_ID}" \
+          NEXT_PUBLIC_API_BASE_URL="" \
+          npm run build
 
       - name: Login to GitHub Container Registry
         shell: bash
@@ -54,7 +62,11 @@ jobs:
         shell: bash
         run: |
           docker build \
-            -f services/audit_service/setup/Dockerfile \
+            -f ui/setup/Dockerfile \
+            --build-arg NEXT_PUBLIC_KEYCLOAK_URL="${NEXT_PUBLIC_KEYCLOAK_URL}" \
+            --build-arg NEXT_PUBLIC_KEYCLOAK_REALM="${NEXT_PUBLIC_KEYCLOAK_REALM}" \
+            --build-arg NEXT_PUBLIC_KEYCLOAK_CLIENT_ID="${NEXT_PUBLIC_KEYCLOAK_CLIENT_ID}" \
+            --build-arg NEXT_PUBLIC_API_BASE_URL="" \
             -t "${IMAGE_NAME}:${IMAGE_TAG}" \
             -t "${IMAGE_NAME}:latest" \
             .
@@ -69,7 +81,7 @@ jobs:
         shell: bash
         run: |
           kubectl get nodes
-          helm list --all-namespaces
+          helm list --namespace "${NAMESPACE}"
 
       - name: Deploy with Helm
         shell: bash
@@ -79,7 +91,7 @@ jobs:
             --create-namespace \
             --set image.repository="${IMAGE_NAME}" \
             --set image.tag="${IMAGE_TAG}" \
-            --set ingress.host="${INGRESS_HOST}"
+            --set ingress.host="${PUBLIC_HOST}"
 
       - name: Verify Kubernetes rollout
         shell: bash

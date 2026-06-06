@@ -1,0 +1,150 @@
+name: Microservices CI/CD
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "requirements.txt"
+      - "services/customer_service/**"
+      - "services/catalog_service/**"
+      - "services/service_status_service/**"
+      - "services/provisioning_service/**"
+      - "services/billing_service/**"
+      - "services/payment_service/**"
+      - "services/notification_service/**"
+      - "services/onboarding_service/**"
+      - ".github/workflows/microservices-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  NAMESPACE: telcox
+  KUBECONFIG: /home/julio/.kube/config
+  INGRESS_HOST: ${{ vars.PUBLIC_HOST || 'reto1.telcox.site' }}
+
+jobs:
+  build-push-and-deploy:
+    name: Build, Push and Deploy ${{ matrix.release }}
+    runs-on: self-hosted
+    concurrency:
+      group: telcox-${{ matrix.release }}
+      cancel-in-progress: false
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        include:
+          - service: customer_service
+            release: customer-service
+            image: telcox-customer-service
+          - service: catalog_service
+            release: catalog-service
+            image: telcox-catalog-service
+          - service: service_status_service
+            release: service-status-service
+            image: telcox-service-status-service
+          - service: provisioning_service
+            release: provisioning-service
+            image: telcox-provisioning-service
+          - service: billing_service
+            release: billing-service
+            image: telcox-billing-service
+          - service: payment_service
+            release: payment-service
+            image: telcox-payment-service
+          - service: notification_service
+            release: notification-service
+            image: telcox-notification-service
+          - service: onboarding_service
+            release: onboarding-service
+            image: telcox-onboarding-service
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Decide deployment
+        id: changes
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          CHANGED_FILES="$(git diff --name-only HEAD^ HEAD || true)"
+          if echo "$CHANGED_FILES" | grep -qE "^(requirements.txt|services/${{ matrix.service }}/|\.github/workflows/microservices-ci\.yml)"; then
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set image metadata
+        if: steps.changes.outputs.deploy == 'true'
+        shell: bash
+        run: |
+          echo "IMAGE_NAME=ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}" >> "$GITHUB_ENV"
+          echo "IMAGE_TAG=${GITHUB_SHA}" >> "$GITHUB_ENV"
+          echo "CHART_PATH=services/${{ matrix.service }}/setup/helm" >> "$GITHUB_ENV"
+
+      - name: Compile service
+        if: steps.changes.outputs.deploy == 'true'
+        shell: bash
+        run: |
+          python3 -m compileall "services/${{ matrix.service }}"
+
+      - name: Login to GitHub Container Registry
+        if: steps.changes.outputs.deploy == 'true'
+        shell: bash
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: Build Docker image
+        if: steps.changes.outputs.deploy == 'true'
+        shell: bash
+        run: |
+          docker build \
+            -f "services/${{ matrix.service }}/setup/Dockerfile" \
+            -t "${IMAGE_NAME}:${IMAGE_TAG}" \
+            -t "${IMAGE_NAME}:latest" \
+            .
+
+      - name: Push Docker image
+        if: steps.changes.outputs.deploy == 'true'
+        shell: bash
+        run: |
+          docker push "${IMAGE_NAME}:${IMAGE_TAG}"
+          docker push "${IMAGE_NAME}:latest"
+
+      - name: Verify Kubernetes access
+        if: steps.changes.outputs.deploy == 'true'
+        shell: bash
+        run: |
+          kubectl get nodes
+          helm list --namespace "${NAMESPACE}"
+
+      - name: Deploy with Helm
+        if: steps.changes.outputs.deploy == 'true'
+        shell: bash
+        run: |
+          helm upgrade --install "${{ matrix.release }}" "${CHART_PATH}" \
+            --namespace "${NAMESPACE}" \
+            --create-namespace \
+            --set image.repository="${IMAGE_NAME}" \
+            --set image.tag="${IMAGE_TAG}" \
+            --set ingress.enabled=true \
+            --set ingress.host="${INGRESS_HOST}"
+
+      - name: Verify Kubernetes rollout
+        if: steps.changes.outputs.deploy == 'true'
+        shell: bash
+        run: |
+          kubectl rollout status deployment/"${{ matrix.release }}" \
+            --namespace "${NAMESPACE}" \
+            --timeout=120s

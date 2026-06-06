@@ -1,0 +1,9 @@
+.git
+.github
+.venv
+logs
+ui/node_modules
+ui/.next
+ui/dist
+**/__pycache__
+**/*.pyc

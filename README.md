@@ -188,6 +188,50 @@ imagePullSecrets:
 
 Si la imagen es publica, no hace falta `imagePullSecrets`.
 
+## CI/CD de los demas microservicios y UI
+
+Tambien estan configurados pipelines independientes para evitar conflictos entre despliegues:
+
+- `.github/workflows/microservices-ci.yml`: despliega Customer, Catalog, Service Status, Provisioning, Billing, Payment, Notification y Onboarding.
+- `.github/workflows/ui-ci.yml`: construye y despliega la UI Next.js.
+
+Los workflows usan:
+
+- `runs-on: self-hosted`
+- GitHub Container Registry: `ghcr.io`
+- `KUBECONFIG=/home/julio/.kube/config`
+- Namespace Kubernetes: `telcox`
+- Variable GitHub Actions: `PUBLIC_HOST`
+
+Configura esta variable en GitHub:
+
+```text
+Repository > Settings > Secrets and variables > Actions > Variables
+PUBLIC_HOST=reto1.telcox.site
+```
+
+Para que no se pisen:
+
+- Cada release tiene su propio `concurrency group`.
+- El despliegue de microservicios usa `max-parallel: 1`.
+- El workflow de microservicios solo despliega el servicio que cambio, excepto cuando se ejecuta manualmente con `workflow_dispatch`.
+- La UI se despliega como `telcox-ui` y queda en `/`; los microservicios mantienen rutas propias como `/audit-service`, `/customer-service`, etc.
+- El Ingress del UI tiene prioridad baja para que Traefik enrute antes las rutas especificas de los microservicios.
+
+Imagenes publicadas:
+
+```text
+ghcr.io/jcbodero/telcox-customer-service
+ghcr.io/jcbodero/telcox-catalog-service
+ghcr.io/jcbodero/telcox-service-status-service
+ghcr.io/jcbodero/telcox-provisioning-service
+ghcr.io/jcbodero/telcox-billing-service
+ghcr.io/jcbodero/telcox-payment-service
+ghcr.io/jcbodero/telcox-notification-service
+ghcr.io/jcbodero/telcox-onboarding-service
+ghcr.io/jcbodero/telcox-ui
+```
+
 ## Helm por microservicio
 
 Cada microservicio tiene su propio chart Helm en una carpeta `helm`:
@@ -307,7 +351,7 @@ Repository > Settings > Secrets and variables > Actions > Variables
 PUBLIC_HOST=reto1.telcox.site
 ```
 
-El workflow de `audit_service` usa `PUBLIC_HOST` para actualizar el host del Ingress durante el despliegue. Si no existe `PUBLIC_HOST`
+Los workflows usan `PUBLIC_HOST` para actualizar el host del Ingress durante el despliegue. Si no existe `PUBLIC_HOST`, usan `reto1.telcox.site` como valor por defecto.
 
 ## Autenticacion OAuth2/OIDC con Keycloak
 

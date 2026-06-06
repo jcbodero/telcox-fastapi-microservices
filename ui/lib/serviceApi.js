@@ -10,7 +10,12 @@ const SERVICE_PORTS = {
   catalog: process.env.NEXT_PUBLIC_CATALOG_PORT || '8009',
 }
 
-export const buildUrl = (service, path) => `http://localhost:${SERVICE_PORTS[service]}${path}`
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
+
+export const buildUrl = (service, path) => {
+  if (API_BASE_URL !== undefined) return `${API_BASE_URL}${path}`
+  return `http://localhost:${SERVICE_PORTS[service]}${path}`
+}
 
 const handleResponse = async (res) => {
   if (!res.ok) {

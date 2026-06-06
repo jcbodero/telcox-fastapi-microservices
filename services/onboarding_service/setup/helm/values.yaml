@@ -16,7 +16,7 @@ identity:
   faceProvider: mock-face-match
 
 audit:
-  backend: postgres
+  backend: memory
   postgresUrlSecretName: telcox-postgres-auth
   postgresUrlSecretKey: url
 

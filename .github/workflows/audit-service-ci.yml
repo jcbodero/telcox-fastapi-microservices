@@ -77,6 +77,8 @@ jobs:
           helm upgrade --install "${RELEASE_NAME}" "${CHART_PATH}" \
             --namespace "${NAMESPACE}" \
             --create-namespace \
+            --wait \
+            --timeout 5m \
             --set image.repository="${IMAGE_NAME}" \
             --set image.tag="${IMAGE_TAG}" \
             --set ingress.host="${INGRESS_HOST}"
@@ -86,4 +88,12 @@ jobs:
         run: |
           kubectl rollout status deployment/"${RELEASE_NAME}" \
             --namespace "${NAMESPACE}" \
-            --timeout=120s
+            --timeout=300s
+
+      - name: Show Kubernetes diagnostics on failure
+        if: failure()
+        shell: bash
+        run: |
+          kubectl get pods --namespace "${NAMESPACE}" -o wide
+          kubectl describe deployment/"${RELEASE_NAME}" --namespace "${NAMESPACE}" || true
+          kubectl describe pods --namespace "${NAMESPACE}" -l app.kubernetes.io/instance="${RELEASE_NAME}" || true

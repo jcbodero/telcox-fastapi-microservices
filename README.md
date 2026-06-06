@@ -217,6 +217,17 @@ Para que no se pisen:
 - El workflow de microservicios solo despliega el servicio que cambio, excepto cuando se ejecuta manualmente con `workflow_dispatch`.
 - La UI se despliega como `telcox-ui` y queda en `/`; los microservicios mantienen rutas propias como `/audit-service`, `/customer-service`, etc.
 - El Ingress del UI tiene prioridad baja para que Traefik enrute antes las rutas especificas de los microservicios.
+- Los deployments usan rolling update con `maxUnavailable: 0`, `maxSurge: 1` y `progressDeadlineSeconds: 300`.
+- Los workflows usan `helm --wait --timeout 5m` y `kubectl rollout status --timeout=300s`.
+
+Si un rollout queda esperando, revisar eventos y logs:
+
+```bash
+KUBECONFIG=/home/julio/.kube/config kubectl get pods -n telcox -o wide
+KUBECONFIG=/home/julio/.kube/config kubectl describe deployment/audit-service -n telcox
+KUBECONFIG=/home/julio/.kube/config kubectl describe pods -n telcox -l app.kubernetes.io/instance=audit-service
+KUBECONFIG=/home/julio/.kube/config kubectl logs -n telcox -l app.kubernetes.io/instance=audit-service --tail=100
+```
 
 Imagenes publicadas:
 

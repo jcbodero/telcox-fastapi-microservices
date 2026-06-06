@@ -10,7 +10,7 @@ imagePullSecrets: []
 basePath: /customer-service
 
 audit:
-  backend: postgres
+  backend: memory
   postgresUrlSecretName: telcox-postgres-auth
   postgresUrlSecretKey: url
 

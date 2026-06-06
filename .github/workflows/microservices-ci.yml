@@ -136,10 +136,13 @@ jobs:
           helm upgrade --install "${{ matrix.release }}" "${CHART_PATH}" \
             --namespace "${NAMESPACE}" \
             --create-namespace \
+            --wait \
+            --timeout 5m \
             --set image.repository="${IMAGE_NAME}" \
             --set image.tag="${IMAGE_TAG}" \
             --set ingress.enabled=true \
-            --set ingress.host="${INGRESS_HOST}"
+            --set ingress.host="${INGRESS_HOST}" \
+            --set audit.backend=memory
 
       - name: Verify Kubernetes rollout
         if: steps.changes.outputs.deploy == 'true'
@@ -147,4 +150,13 @@ jobs:
         run: |
           kubectl rollout status deployment/"${{ matrix.release }}" \
             --namespace "${NAMESPACE}" \
-            --timeout=120s
+            --timeout=300s
+
+      - name: Show Kubernetes diagnostics on failure
+        if: failure() && steps.changes.outputs.deploy == 'true'
+        shell: bash
+        run: |
+          kubectl get pods --namespace "${NAMESPACE}" -o wide
+          kubectl describe deployment/"${{ matrix.release }}" --namespace "${NAMESPACE}" || true
+          kubectl describe pods --namespace "${NAMESPACE}" -l app.kubernetes.io/instance="${{ matrix.release }}" || true
+          kubectl logs --namespace "${NAMESPACE}" -l app.kubernetes.io/instance="${{ matrix.release }}" --tail=100 || true

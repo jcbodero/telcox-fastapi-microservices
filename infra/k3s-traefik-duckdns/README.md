@@ -5,8 +5,8 @@ Esta configuracion prepara Traefik en K3s para emitir certificados gratuitos de 
 Usa un unico host publico de DuckDNS y enruta cada microservicio por base path:
 
 ```text
-https://telcox.duckdns.org/audit-service/health
-https://telcox.duckdns.org/customer-service/health
+https://reto1.telcox.site/audit-service/health
+https://reto1.telcox.site/customer-service/health
 ```
 
 ## 1. Crear subdominio en DuckDNS
@@ -58,7 +58,7 @@ KUBECONFIG=/home/julio/.kube/config helm upgrade --install audit-service service
   --create-namespace \
   --set image.repository=ghcr.io/jcbodero/telcox-audit-service \
   --set image.tag=latest \
-  --set ingress.host=telcox.duckdns.org
+  --set ingress.host=reto1.telcox.site
 ```
 
 ## 5. Validar
@@ -71,13 +71,13 @@ KUBECONFIG=/home/julio/.kube/config kubectl logs -n kube-system deploy/traefik |
 Probar:
 
 ```bash
-curl -k https://telcox.duckdns.org/audit-service/health
+curl -k https://reto1.telcox.site/audit-service/health
 ```
 
 Cuando el certificado este emitido correctamente, prueba sin `-k`:
 
 ```bash
-curl https://telcox.duckdns.org/audit-service/health
+curl https://reto1.telcox.site/audit-service/health
 ```
 
 ## Notas
@@ -85,3 +85,4 @@ curl https://telcox.duckdns.org/audit-service/health
 - DuckDNS puede tardar en propagar el TXT del DNS-01 challenge.
 - El archivo `acme.json` se guarda en `/data/acme.json` dentro de Traefik mediante persistencia del chart.
 - No uses `audit.telcox.local` con Let's Encrypt; `.local` no es un dominio publico valido.
+

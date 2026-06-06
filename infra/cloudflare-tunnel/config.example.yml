@@ -1,0 +1,11 @@
+tunnel: f75497bc-92a2-4c15-b3f1-4728539064e4
+credentials-file: /home/julio/.cloudflared/f75497bc-92a2-4c15-b3f1-4728539064e4.json
+
+ingress:
+  - hostname: reto1.telcox.site
+    service: https://127.0.0.1:31645
+    originRequest:
+      noTLSVerify: true
+      httpHostHeader: reto1.telcox.site
+  - service: http_status:404
+

@@ -20,7 +20,7 @@ env:
   NAMESPACE: telcox
   CHART_PATH: services/audit_service/setup/helm
   KUBECONFIG: /home/julio/.kube/config
-  INGRESS_HOST: ${{ vars.DUCKDNS_HOST || 'telcox.duckdns.org' }}
+  INGRESS_HOST: ${{ vars.PUBLIC_HOST || vars.DUCKDNS_HOST || 'reto1.telcox.site' }}
 
 jobs:
   build-push-and-deploy:
@@ -83,3 +83,4 @@ jobs:
           kubectl rollout status deployment/"${RELEASE_NAME}" \
             --namespace "${NAMESPACE}" \
             --timeout=120s
+

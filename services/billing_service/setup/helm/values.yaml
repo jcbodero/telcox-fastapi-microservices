@@ -17,11 +17,10 @@ service:
 ingress:
   enabled: false
   className: traefik
-  host: telcox.duckdns.org
+  host: reto1.telcox.site
   annotations:
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
     traefik.ingress.kubernetes.io/router.tls: "true"
-    traefik.ingress.kubernetes.io/router.tls.certresolver: duckdns
 
 resources:
   requests:
@@ -30,5 +29,6 @@ resources:
   limits:
     cpu: 250m
     memory: 256Mi
+
 
 

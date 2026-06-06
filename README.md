@@ -148,7 +148,7 @@ Configura esta variable en GitHub:
 
 ```text
 Repository > Settings > Secrets and variables > Actions > Variables
-DUCKDNS_HOST=telcox.duckdns.org
+DUCKDNS_HOST=reto1.telcox.site
 ```
 
 Requisitos en el servidor Ubuntu donde corre el runner:
@@ -249,11 +249,10 @@ Audit Service queda expuesto por defecto con Traefik, TLS y DuckDNS:
 ingress:
   enabled: true
   className: traefik
-  host: telcox.duckdns.org
+  host: reto1.telcox.site
   annotations:
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
     traefik.ingress.kubernetes.io/router.tls: "true"
-    traefik.ingress.kubernetes.io/router.tls.certresolver: duckdns
 basePath: /audit-service
 ```
 
@@ -262,16 +261,16 @@ Los demas microservicios tienen `ingress.enabled: false` y pueden activarse con 
 Con DuckDNS se recomienda usar un solo host y enrutar por base path:
 
 ```text
-https://telcox.duckdns.org/audit-service/health
-https://telcox.duckdns.org/customer-service/health
-https://telcox.duckdns.org/catalog-service/health
+https://reto1.telcox.site/audit-service/health
+https://reto1.telcox.site/customer-service/health
+https://reto1.telcox.site/catalog-service/health
 ```
 
 Probar Audit Service sin `port-forward`:
 
 ```bash
-curl https://telcox.duckdns.org/audit-service/health
-curl https://telcox.duckdns.org/audit-service/audit-events
+curl https://reto1.telcox.site/audit-service/health
+curl https://reto1.telcox.site/audit-service/audit-events
 ```
 
 Si quieres activar Traefik para otro microservicio:
@@ -283,7 +282,7 @@ helm upgrade --install customer-service services/customer_service/setup/helm \
   --set image.repository=ghcr.io/jcbodero/telcox-customer-service \
   --set image.tag=latest \
   --set ingress.enabled=true \
-  --set ingress.host=telcox.duckdns.org
+  --set ingress.host=reto1.telcox.site
 ```
 
 ## TLS gratis con DuckDNS
@@ -298,13 +297,12 @@ Cada Ingress queda preparado con:
 ```yaml
 traefik.ingress.kubernetes.io/router.entrypoints: websecure
 traefik.ingress.kubernetes.io/router.tls: "true"
-traefik.ingress.kubernetes.io/router.tls.certresolver: duckdns
 ```
 
 Usa un host publico de DuckDNS, por ejemplo:
 
 ```text
-telcox.duckdns.org
+reto1.telcox.site
 ```
 
 Desplegar Audit Service con HTTPS:
@@ -315,14 +313,43 @@ helm upgrade --install audit-service services/audit_service/setup/helm \
   --create-namespace \
   --set image.repository=ghcr.io/jcbodero/telcox-audit-service \
   --set image.tag=latest \
-  --set ingress.host=telcox.duckdns.org
+  --set ingress.host=reto1.telcox.site
 ```
 
 Probar:
 
 ```bash
-curl https://telcox.duckdns.org/audit-service/health
+curl https://reto1.telcox.site/audit-service/health
 ```
+
+## Cloudflare Tunnel para evitar CGNAT
+
+Si tu proveedor usa CGNAT, DuckDNS puede resolver el dominio pero el trafico externo no llega a tu router. Para ese caso el proyecto incluye una alternativa con Cloudflare Tunnel:
+
+- `infra/cloudflare-tunnel/README.md`
+- `infra/cloudflare-tunnel/config.example.yml`
+- `infra/cloudflare-tunnel/cloudflared-telcox.service`
+
+Cloudflare Tunnel abre una conexion saliente desde tu VM Ubuntu hacia Cloudflare, por lo que no necesitas abrir puertos en el router.
+
+Flujo recomendado:
+
+```text
+https://reto1.telcox.site/audit-service/health
+  -> Cloudflare Tunnel
+    -> cloudflared en Ubuntu
+      -> Traefik HTTPS NodePort
+        -> audit-service
+```
+
+Para CI/CD, configura una variable en GitHub:
+
+```text
+Repository > Settings > Secrets and variables > Actions > Variables
+PUBLIC_HOST=reto1.telcox.site
+```
+
+El workflow de `audit_service` usa `PUBLIC_HOST` para actualizar el host del Ingress durante el despliegue. Si no existe `PUBLIC_HOST`, usa `DUCKDNS_HOST` como respaldo.
 
 Documentacion OpenAPI por servicio:
 
@@ -406,3 +433,4 @@ Recomendaciones transversales:
 - No hay llamadas reales al BSS, SRI, inventario ni gateways.
 - Los modelos son flexibles para mantener el CRUD basico y evitar acoplarse a una base de datos.
 - Hay duplicacion intencional de codigo CRUD porque el objetivo es que cada microservicio sea independiente.
+

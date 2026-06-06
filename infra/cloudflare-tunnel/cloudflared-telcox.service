@@ -1,0 +1,14 @@
+[Unit]
+Description=Cloudflare Tunnel for TelcoX
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=julio
+ExecStart=/usr/bin/cloudflared tunnel --config /home/julio/.cloudflared/telcox-tunnel.yml run
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

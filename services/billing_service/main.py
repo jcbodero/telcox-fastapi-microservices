@@ -53,7 +53,7 @@ app.add_middleware(
 # External system config
 # ---------------------------------------------------------------------------
 
-SRI_SERVICE_URL = os.environ.get("SRI_SERVICE_URL", "http://localhost:8010")
+SRI_SERVICE_URL = os.environ.get("SRI_SERVICE_URL", "http://sri-service:80")
 
 
 @app.on_event("startup")

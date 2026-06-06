@@ -35,6 +35,9 @@ spec:
             - name: http
               containerPort: {{ .Values.service.targetPort }}
               protocol: TCP
+          env:
+            - name: SRI_SERVICE_URL
+              value: {{ .Values.external.sriServiceUrl | quote }}
           readinessProbe:
             httpGet:
               path: "{{ .Values.basePath }}/health"

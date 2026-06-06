@@ -19,7 +19,13 @@ $services = @(
     @{ Name = "billing_service"; Port = 8006 },
     @{ Name = "audit_service"; Port = 8007 },
     @{ Name = "service_status_service"; Port = 8008 },
-    @{ Name = "catalog_service"; Port = 8009 }
+    @{ Name = "catalog_service"; Port = 8009 },
+    # --- External Systems (BSS ↔ External integrations) ---
+    @{ Name = "external.sri_service"; Port = 8010 },
+    @{ Name = "external.payment_gateway_mock"; Port = 8011 },
+    @{ Name = "external.network_oss_mock"; Port = 8012 },
+    @{ Name = "external.kyc_identity_mock"; Port = 8013 },
+    @{ Name = "external.notification_gateway_mock"; Port = 8014 }
 )
 
 function Get-ListeningPidsForPort {

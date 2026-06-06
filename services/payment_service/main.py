@@ -4,6 +4,7 @@ from uuid import uuid4
 
 import os
 import logging
+import requests
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, ConfigDict, Field
@@ -23,8 +24,8 @@ class PaymentResponse(BaseModel):
 
 app = FastAPI(
     title="TelcoX Payment Service",
-    description="CRUD basico de pagos e historial. Simula integracion con gateway de pagos.",
-    version="1.0.0",
+    description="CRUD basico de pagos e historial. Integrado con Payment Gateway Mock externo (puerto 8011).",
+    version="2.0.0",
     docs_url="/payment-service/docs",
     openapi_url="/payment-service/openapi.json",
 )
@@ -38,28 +39,79 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ---------------------------------------------------------------------------
+# External system config
+# ---------------------------------------------------------------------------
+
+PAYMENT_GATEWAY_URL = os.environ.get("PAYMENT_GATEWAY_URL", "http://localhost:8011")
+
 
 @app.on_event("startup")
 def on_startup() -> None:
     port = os.environ.get("PORT", "8003")
     logging.info(f"Payment Service starting on port {port}")
+    logging.info(f"Payment Gateway URL: {PAYMENT_GATEWAY_URL}")
 
 
 @app.post("/payment-service/process", response_model=PaymentResponse, status_code=status.HTTP_200_OK, tags=["payments"])
 def process_payment(payload: PaymentPayload) -> dict[str, Any]:
-    """Procesa un pago simulado.
+    """Procesa un pago simulado con integración al Payment Gateway externo.
 
-    Espera en `payload.data` las claves: `customer_id`, `amount`, `method`, opcional `mode` ("success"|"fail").
+    Espera en `payload.data` las claves: `customer_id`, `amount`, `method`, opcional `mode` (\"success\"|\"fail\").
     """
     data = payload.data
     mode = data.get("mode", "success")
+
+    # --- Call External Payment Gateway ---
+    gateway_ref: str | None = None
+    gateway_transaction_id: str | None = None
+    gateway_auth_code: str | None = None
+    gateway_error: str | None = None
+    final_status: str
+
+    try:
+        gw_response = requests.post(
+            f"{PAYMENT_GATEWAY_URL}/payment-gateway/charge",
+            json={"data": {
+                "amount": data.get("amount"),
+                "currency": data.get("currency", "USD"),
+                "customer_id": data.get("customer_id"),
+                "invoice_id": data.get("invoice_id"),
+                "payment_method": data.get("method", "card"),
+                "mode": mode,
+            }},
+            timeout=5,
+        )
+        if gw_response.status_code == 200:
+            gw_data = gw_response.json()
+            gateway_transaction_id = gw_data.get("transaction_id")
+            gateway_auth_code = gw_data.get("authorization_code")
+            gateway_ref = f"gw-{gateway_transaction_id}"
+            final_status = "approved"
+        else:
+            gw_data = gw_response.json()
+            gateway_error = str(gw_data.get("detail", "gateway_declined"))
+            gateway_ref = f"gw-mock-{str(uuid4())[:8]}"
+            final_status = "declined"
+    except requests.RequestException as exc:
+        logging.warning("Payment gateway unreachable: %s — falling back to local mock", exc)
+        gateway_ref = f"gw-mock-{str(uuid4())[:8]}"
+        final_status = "approved" if mode == "success" else "declined"
+        gateway_error = "gateway_unreachable" if mode != "success" else None
+
     payment = build_payment({
         "customer_id": data.get("customer_id"),
         "amount": data.get("amount"),
         "currency": data.get("currency", "USD"),
         "method": data.get("method", "card"),
-        "status": "approved" if mode == "success" else "declined",
-        "gateway_reference": f"gw-mock-{str(uuid4())[:8]}",
+        "invoice_id": data.get("invoice_id"),
+        "status": final_status,
+        "gateway_reference": gateway_ref,
+        "gateway_transaction_id": gateway_transaction_id,
+        "gateway_authorization_code": gateway_auth_code,
+        "gateway_error": gateway_error,
+        "external_system": "payment_gateway_mock",
+        "external_url": PAYMENT_GATEWAY_URL,
     })
     payments[payment["id"]] = payment
     return payment
@@ -85,6 +137,7 @@ payments: dict[str, dict[str, Any]] = {
             "method": "card",
             "status": "approved",
             "gateway_reference": "gw-demo-123",
+            "external_system": "payment_gateway_mock",
         }
     )
 }
@@ -136,4 +189,3 @@ def delete_payment(payment_id: str) -> None:
     if payment_id not in payments:
         raise HTTPException(status_code=404, detail="Payment not found")
     del payments[payment_id]
-

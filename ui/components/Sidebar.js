@@ -14,6 +14,7 @@ export default function Sidebar({ tabs, activeTab, setActiveTab, counts, onRefre
             {tab === 'billing' && 'Facturación'}
             {tab === 'notifications' && 'Notificaciones'}
             {tab === 'account' && 'Cuenta'}
+            {tab === 'external' && 'Sistemas Externos'}
           </button>
         ))}
       </div>

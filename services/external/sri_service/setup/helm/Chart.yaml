@@ -1,0 +1,6 @@
+apiVersion: v2
+name: telcox-sri-service
+description: A Helm chart for TelcoX External SRI Mock Service
+type: application
+version: 1.0.0
+appVersion: "1.0.0"

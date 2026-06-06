@@ -8,6 +8,12 @@ const SERVICE_PORTS = {
   audit: process.env.NEXT_PUBLIC_AUDIT_PORT || '8007',
   status: process.env.NEXT_PUBLIC_STATUS_PORT || '8008',
   catalog: process.env.NEXT_PUBLIC_CATALOG_PORT || '8009',
+  // External systems (BSS ↔ External)
+  sri: process.env.NEXT_PUBLIC_SRI_PORT || '8010',
+  paymentGateway: process.env.NEXT_PUBLIC_PAYMENT_GATEWAY_PORT || '8011',
+  networkOss: process.env.NEXT_PUBLIC_NETWORK_OSS_PORT || '8012',
+  kycIdentity: process.env.NEXT_PUBLIC_KYC_PORT || '8013',
+  notificationGateway: process.env.NEXT_PUBLIC_NOTIFICATION_GATEWAY_PORT || '8014',
 }
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
@@ -55,6 +61,19 @@ export const apiMap = {
   status: '/service-status-service/active-services',
   catalog: '/catalog-service/products',
   provisioningOrders: '/provisioning-service/orders',
+  // External systems
+  sriAuthorizations: '/sri-service/authorizations',
+  sriHealth: '/sri-service/health',
+  paymentGatewayTransactions: '/payment-gateway/transactions',
+  paymentGatewayHealth: '/payment-gateway/health',
+  networkOssProvisions: '/network-oss/provision',
+  networkOssStatus: '/network-oss/network-status',
+  networkOssHealth: '/network-oss/health',
+  kycVerifications: '/kyc/verify',
+  kycHealth: '/kyc/health',
+  notificationGatewayMessages: '/notification-gateway/messages',
+  notificationGatewayStats: '/notification-gateway/stats',
+  notificationGatewayHealth: '/notification-gateway/health',
 }
 
 export const postJson = async (service, path, payload, token = null) => {
@@ -86,4 +105,36 @@ export const loadAllData = async (token = null) => {
     fetchJson(buildUrl('audit', apiMap.audit), {}, token),
     fetchJson(buildUrl('provisioning', apiMap.provisioningOrders), {}, token),
   ])
+}
+
+/** Load data from all 5 external systems in parallel. Never throws — each resolves with null on error. */
+export const loadExternalSystemsData = async () => {
+  const safe = async (fn) => { try { return await fn() } catch { return null } }
+  const [
+    sriAuths, sriHealth,
+    gwTxns, gwHealth,
+    ossOrders, ossNetStatus, ossHealth,
+    kycVerifs, kycHealth,
+    ngwMessages, ngwStats, ngwHealth,
+  ] = await Promise.all([
+    safe(() => fetchJson(buildUrl('sri', apiMap.sriAuthorizations))),
+    safe(() => fetchJson(buildUrl('sri', apiMap.sriHealth))),
+    safe(() => fetchJson(buildUrl('paymentGateway', apiMap.paymentGatewayTransactions))),
+    safe(() => fetchJson(buildUrl('paymentGateway', apiMap.paymentGatewayHealth))),
+    safe(() => fetchJson(buildUrl('networkOss', apiMap.networkOssProvisions))),
+    safe(() => fetchJson(buildUrl('networkOss', apiMap.networkOssStatus))),
+    safe(() => fetchJson(buildUrl('networkOss', apiMap.networkOssHealth))),
+    safe(() => fetchJson(buildUrl('kycIdentity', apiMap.kycVerifications))),
+    safe(() => fetchJson(buildUrl('kycIdentity', apiMap.kycHealth))),
+    safe(() => fetchJson(buildUrl('notificationGateway', apiMap.notificationGatewayMessages))),
+    safe(() => fetchJson(buildUrl('notificationGateway', apiMap.notificationGatewayStats))),
+    safe(() => fetchJson(buildUrl('notificationGateway', apiMap.notificationGatewayHealth))),
+  ])
+  return {
+    sri: { authorizations: sriAuths || [], health: sriHealth },
+    paymentGateway: { transactions: gwTxns || [], health: gwHealth },
+    networkOss: { orders: ossOrders || [], networkStatus: ossNetStatus, health: ossHealth },
+    kyc: { verifications: kycVerifs || [], health: kycHealth },
+    notificationGateway: { messages: ngwMessages || [], stats: ngwStats, health: ngwHealth },
+  }
 }

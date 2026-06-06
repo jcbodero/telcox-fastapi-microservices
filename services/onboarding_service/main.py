@@ -9,9 +9,16 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
+import requests
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, ConfigDict, Field
+
+# ---------------------------------------------------------------------------
+# External system config
+# ---------------------------------------------------------------------------
+
+KYC_SERVICE_URL = os.environ.get("KYC_SERVICE_URL", "http://localhost:8013")
 
 
 class OnboardingCasePayload(BaseModel):
@@ -237,6 +244,7 @@ SERVICE_NAME = "onboarding-service"
 def on_startup() -> None:
     port = os.environ.get("PORT", os.environ.get("SERVICE_PORT", "8008"))
     logging.info("Onboarding Service starting on port %s", port)
+    logging.info("KYC Service URL: %s", KYC_SERVICE_URL)
 
 
 def evidence_ref(value: str | None) -> str | None:
@@ -385,6 +393,46 @@ def create_onboarding_case(payload: OnboardingCasePayload) -> dict[str, Any]:
 @audit_action("VERIFY", "IDENTITY")
 def verify_onboarding(payload: IdentityVerificationPayload) -> dict[str, Any]:
     data = payload.model_dump()
+
+    # --- Call External KYC Service ---
+    kyc_verification_id: str | None = None
+    kyc_provider_response: dict[str, Any] | None = None
+    kyc_error: str | None = None
+    try:
+        kyc_resp = requests.post(
+            f"{KYC_SERVICE_URL}/kyc/verify",
+            json={"data": {
+                "document_id": data.get("document_id"),
+                "full_name": data.get("full_name"),
+                "document_front_ref": evidence_ref(data.get("document_front_image")),
+                "document_back_ref": evidence_ref(data.get("document_back_image")),
+                "selfie_ref": evidence_ref(data.get("selfie_image")),
+                "document_type": data.get("document_type", "national_id"),
+                "consent_accepted": data.get("consent_accepted", False),
+            }},
+            timeout=10,
+        )
+        if kyc_resp.status_code in (200, 201):
+            kyc_data = kyc_resp.json()
+            kyc_verification_id = kyc_data.get("verification_id")
+            kyc_provider_response = {
+                "status": kyc_data.get("status"),
+                "document_check": kyc_data.get("document_check"),
+                "face_match": kyc_data.get("face_match"),
+                "liveness": kyc_data.get("liveness"),
+                "similarity_score": kyc_data.get("similarity_score"),
+                "risk_level": kyc_data.get("risk_level"),
+                "provider": kyc_data.get("provider"),
+                "provider_reference": kyc_data.get("provider_reference"),
+            }
+        else:
+            kyc_error = f"KYC HTTP {kyc_resp.status_code}"
+            logging.warning("KYC service returned %s — falling back to local evaluation", kyc_resp.status_code)
+    except requests.RequestException as exc:
+        kyc_error = "kyc_service_unreachable"
+        logging.warning("KYC service unreachable: %s — falling back to local evaluation", exc)
+
+    # Run local evaluation as fallback / complement
     verification = evaluate_identity(data)
     identity_profile = build_identity_profile(data, verification)
     case = build_onboarding_case(
@@ -398,6 +446,11 @@ def verify_onboarding(payload: IdentityVerificationPayload) -> dict[str, Any]:
             "document_back_ref": evidence_ref(data.get("document_back_image")),
             "selfie_ref": evidence_ref(data.get("selfie_image")),
             "consent_accepted": data.get("consent_accepted"),
+            "kyc_verification_id": kyc_verification_id,
+            "kyc_provider_response": kyc_provider_response,
+            "kyc_error": kyc_error,
+            "external_system": "kyc_identity_mock",
+            "external_url": KYC_SERVICE_URL,
             **verification,
             **identity_profile,
         }

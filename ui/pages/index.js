@@ -8,10 +8,11 @@ import CatalogSection from '../components/CatalogSection'
 import BillingSection from '../components/BillingSection'
 import NotificationsSection from '../components/NotificationsSection'
 import AccountSection from '../components/AccountSection'
+import ExternalSystemsSection from '../components/ExternalSystemsSection'
 import { useAuth } from '../lib/AuthContext'
-import { apiMap, loadAllData, postJson, patchJson } from '../lib/serviceApi'
+import { apiMap, loadAllData, postJson, patchJson, loadExternalSystemsData } from '../lib/serviceApi'
 
-const tabs = ['dashboard', 'catalog', 'billing', 'notifications', 'account']
+const tabs = ['dashboard', 'catalog', 'billing', 'notifications', 'account', 'external']
 
 const channelIcon = {
   email: '📧',
@@ -29,6 +30,7 @@ export default function Home() {
   const [notifications, setNotifications] = useState([])
   const [auditEvents, setAuditEvents] = useState([])
   const [orders, setOrders] = useState([])
+  const [externalData, setExternalData] = useState(null)
   const [log, setLog] = useState([])
   const [activeTab, setActiveTab] = useState('dashboard')
   const [errorMessage, setErrorMessage] = useState('')
@@ -57,10 +59,42 @@ export default function Home() {
       setNotifications(notificationsData)
       setAuditEvents(auditData)
       setOrders(ordersData)
-      appendLog('Dashboard loaded')
+      
+      const extData = await loadExternalSystemsData()
+      setExternalData(extData)
+      
+      appendLog('Dashboard and External Systems data loaded')
     } catch (error) {
       setErrorMessage(error.message)
       appendLog(`Load error: ${error.message}`)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const onRefreshExternal = async () => {
+    setIsLoading(true)
+    try {
+      const extData = await loadExternalSystemsData()
+      setExternalData(extData)
+      appendLog('External Systems data refreshed')
+    } catch (error) {
+      appendLog(`Failed to refresh external systems: ${error.message}`)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const onTestCharge = async (mode) => {
+    setIsLoading(true)
+    try {
+      const payload = { amount: 15.0, currency: 'USD', mode }
+      const res = await postJson('paymentGateway', '/payment-gateway/charge', payload)
+      appendLog(`Test Charge (${mode}): ${res.transaction_id || 'Failed'} Status: ${res.status || 'declined'}`)
+      await onRefreshExternal()
+    } catch (error) {
+      appendLog(`Test Charge failed (Expected if failed mode tested): ${error.message}`)
+      await onRefreshExternal()
     } finally {
       setIsLoading(false)
     }
@@ -224,11 +258,19 @@ export default function Home() {
 
             <StatCards selectedCustomer={selectedCustomer} activeServices={activeServices} invoices={invoices} payments={payments} />
 
-            {activeTab === 'dashboard' && <DashboardSection activeServices={activeServices} auditEvents={auditEvents} />}
+            {activeTab === 'dashboard' && <DashboardSection activeServices={activeServices} auditEvents={auditEvents} orders={orders} />}
             {activeTab === 'catalog' && <CatalogSection catalog={catalog} createProvisioningOrder={createProvisioningOrder} />}
             {activeTab === 'billing' && <BillingSection invoices={invoices} payments={payments} generateInvoice={generateInvoice} processPayment={processPayment} />}
             {activeTab === 'notifications' && <NotificationsSection notifications={notifications} channelIcon={channelIcon} />}
             {activeTab === 'account' && <AccountSection selectedCustomer={selectedCustomer} orders={orders} auditEvents={auditEvents} />}
+            {activeTab === 'external' && (
+              <ExternalSystemsSection
+                externalData={externalData}
+                onRefreshExternal={onRefreshExternal}
+                onTestCharge={onTestCharge}
+                isLoading={isLoading}
+              />
+            )}
 
             <ActivityLog log={log} onClear={() => setLog([])} />
 

@@ -1,4 +1,4 @@
-export default function DashboardSection({ activeServices, auditEvents }) {
+export default function DashboardSection({ activeServices, auditEvents, orders = [] }) {
   return (
     <div className="space-y-6">
       <div className="rounded-[32px] border border-slate-200/70 bg-white/90 p-6 shadow-lg shadow-slate-200/10">
@@ -20,6 +20,14 @@ export default function DashboardSection({ activeServices, auditEvents }) {
                 ? Math.min(100, Math.round((service.data_used_gb / service.data_limit_gb) * 100)) 
                 : 0
               
+              // Find matching completed order for network info
+              const matchingOrder = orders?.find(
+                (o) => o.product_id === service.product_id && 
+                       o.customer_id === service.customer_id && 
+                       o.status === 'completed' &&
+                       o.network_reference_id
+              )
+
               return (
                 <div key={service.id} className="rounded-[28px] border border-slate-200/70 bg-slate-50/80 p-6 shadow-sm transition hover:shadow-md">
                   <div className="flex items-center justify-between gap-4">
@@ -47,7 +55,7 @@ export default function DashboardSection({ activeServices, auditEvents }) {
                       </div>
                       <div className="h-3 w-full overflow-hidden rounded-full bg-slate-200">
                         <div 
-                          className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-blue-600 transition-all duration-500" 
+                           className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-blue-600 transition-all duration-500" 
                           style={{ width: `${pct}%` }}
                         />
                       </div>
@@ -63,6 +71,26 @@ export default function DashboardSection({ activeServices, auditEvents }) {
                         ${parseFloat(service.balance || 0).toFixed(2)} USD
                       </span>
                     </div>
+
+                    {/* Network reference from external OSS system */}
+                    {matchingOrder && (
+                      <div className="rounded-2xl bg-cyan-50/80 border border-cyan-100 p-3 mt-3 text-xs">
+                        <div className="flex justify-between font-semibold text-cyan-900 mb-1">
+                          <span>🛰️ Operador de Red (OSS)</span>
+                          <span className="bg-cyan-200 text-cyan-800 px-1.5 py-0.5 rounded font-mono text-[10px]">
+                            {matchingOrder.network_node || 'CORE-NODE-01'}
+                          </span>
+                        </div>
+                        <div className="text-slate-600 font-mono text-[10px] break-all">
+                          Ref: {matchingOrder.network_reference_id}
+                        </div>
+                        {matchingOrder.external_system && (
+                          <div className="text-right text-[9px] text-cyan-600 font-semibold mt-1">
+                            Vía {matchingOrder.external_system}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               )

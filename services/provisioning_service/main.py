@@ -9,6 +9,13 @@ from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, ConfigDict, Field
 
+# ---------------------------------------------------------------------------
+# External system config
+# ---------------------------------------------------------------------------
+
+NETWORK_OSS_URL = os.environ.get("NETWORK_OSS_URL", "http://localhost:8012")
+SERVICE_STATUS_URL = os.environ.get("SERVICE_STATUS_URL", "http://localhost:8008")
+
 
 class OrderPayload(BaseModel):
     data: dict[str, Any] = Field(default_factory=dict)
@@ -43,6 +50,7 @@ app.add_middleware(
 def on_startup() -> None:
     port = os.environ.get("PORT", "8004")
     logging.info(f"Provisioning Service starting on port {port}")
+    logging.info(f"Network OSS URL: {NETWORK_OSS_URL}")
 
 
 def utc_now() -> str:
@@ -87,22 +95,50 @@ def create_order(payload: OrderPayload) -> dict[str, Any]:
     orders[order["id"]] = order
     
     if order["status"] == "completed":
+        prod_id = order.get("product_id", "")
+
+        # --- Call External Network OSS ---
         try:
-            # Determine limit based on product type
-            prod_id = order.get("product_id", "")
+            oss_response = requests.post(
+                f"{NETWORK_OSS_URL}/network-oss/provision",
+                json={"data": {
+                    "customer_id": order.get("customer_id"),
+                    "product_id": prod_id,
+                    "operation": operation,
+                    "bss_order_id": order["id"],
+                }},
+                timeout=5,
+            )
+            if oss_response.status_code == 201:
+                oss_data = oss_response.json()
+                order["network_reference_id"] = oss_data.get("reference_id")
+                order["network_node"] = oss_data.get("network_node")
+                order["external_system"] = "network_oss_mock"
+                order["external_url"] = NETWORK_OSS_URL
+            else:
+                logging.warning("Network OSS returned %s for order %s", oss_response.status_code, order["id"])
+                order["network_reference_id"] = None
+                order["network_oss_error"] = f"HTTP {oss_response.status_code}"
+        except requests.RequestException as exc:
+            logging.warning("Network OSS unreachable: %s", exc)
+            order["network_reference_id"] = None
+            order["network_oss_error"] = "oss_unreachable"
+
+        # --- Notify Service Status Service ---
+        try:
             limit = 20.0
             if "extra-10gb" in prod_id:
                 limit = 10.0
             elif "50gb" in prod_id:
                 limit = 50.0
             elif "fibra" in prod_id:
-                limit = 1000.0  # Fiber is unlimited, show high limit
-            
+                limit = 1000.0
+
             requests.post(
-                "http://localhost:8008/service-status-service/active-services",
+                f"{SERVICE_STATUS_URL}/service-status-service/active-services",
                 json={"data": {
                     "customer_id": order.get("customer_id"),
-                    "product_id": order.get("product_id"),
+                    "product_id": prod_id,
                     "status": "active" if operation in {"activate", "upgrade", "request_addon"} else "suspended",
                     "data_used_gb": 0.0 if operation == "activate" else 8.4,
                     "data_limit_gb": limit,
@@ -112,6 +148,8 @@ def create_order(payload: OrderPayload) -> dict[str, Any]:
             )
         except requests.RequestException:
             logging.warning("Could not notify service-status-service")
+
+        orders[order["id"]] = order
     return order
 
 

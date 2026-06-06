@@ -31,7 +31,7 @@ const randomString = (length = 64) => {
   return Array.from(values, (value) => chars[value % chars.length]).join('')
 }
 
-export const getRedirectUri = () => `${window.location.origin}/auth/callback`
+export const getRedirectUri = () => `${window.location.origin}/login-callback`
 
 export const createCodeChallenge = async (verifier) => {
   const data = new TextEncoder().encode(verifier)

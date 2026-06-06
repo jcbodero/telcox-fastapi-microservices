@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
-import { useAuth } from '../../lib/AuthContext'
-import { exchangeCodeForTokens } from '../../lib/keycloakAuth'
+import { useAuth } from '../lib/AuthContext'
+import { exchangeCodeForTokens } from '../lib/keycloakAuth'
 
 export default function AuthCallback() {
   const router = useRouter()

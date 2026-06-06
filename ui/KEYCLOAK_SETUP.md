@@ -65,8 +65,8 @@ En login settings:
 
 ```text
 Valid redirect URIs:
-https://reto1.telcox.site/auth/callback
-http://localhost:3000/auth/callback
+https://reto1.telcox.site/login-callback
+http://localhost:3000/login-callback
 
 Valid post logout redirect URIs:
 https://reto1.telcox.site/*
@@ -134,7 +134,7 @@ http://localhost:3000
 La UI:
 
 - redirige a Keycloak con Authorization Code + PKCE
-- recibe el callback en `/auth/callback`
+- recibe el callback en `/login-callback`
 - intercambia el code por tokens
 - guarda tokens en `localStorage`
 - refresca token con refresh token

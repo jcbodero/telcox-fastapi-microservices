@@ -1,0 +1,34 @@
+replicaCount: 1
+
+image:
+  repository: ghcr.io/jcbodero/telcox-payment-gateway-mock
+  tag: latest
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+basePath: /payment-gateway-mock
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8011
+
+ingress:
+  enabled: false
+  className: traefik
+  host: reto1.telcox.site
+  tls:
+    enabled: false
+    secretName: telcox-payment-gateway-mock-tls
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+
+resources:
+  requests:
+    cpu: 20m
+    memory: 96Mi
+  limits:
+    cpu: 80m
+    memory: 160Mi

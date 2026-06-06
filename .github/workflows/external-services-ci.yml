@@ -103,7 +103,7 @@ jobs:
             -f "${DOCKERFILE}" \
             -t "${IMAGE_NAME}:${IMAGE_TAG}" \
             -t "${IMAGE_NAME}:latest" \
-            "${SERVICE_DIR}"
+            .
 
       - name: Push Docker image
         if: steps.changes.outputs.build == 'true'

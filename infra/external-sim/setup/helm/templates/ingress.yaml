@@ -1,0 +1,56 @@
+{{- if .Values.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: external-sim
+  namespace: {{ .Values.namespace.name | quote }}
+  annotations:
+    {{- toYaml .Values.ingress.annotations | nindent 4 }}
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  {{- if .Values.ingress.tls.enabled }}
+  tls:
+    - hosts:
+        - {{ .Values.global.host }}
+      secretName: {{ .Values.ingress.tls.secretName }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.global.host }}
+      http:
+        paths:
+          - path: /sri-service
+            pathType: Prefix
+            backend:
+              service:
+                name: sri-service
+                port:
+                  number: {{ .Values.sri.service.port }}
+          - path: /kyc
+            pathType: Prefix
+            backend:
+              service:
+                name: kyc-identity-mock
+                port:
+                  number: {{ .Values.kyc.service.port }}
+          - path: /payment-gateway
+            pathType: Prefix
+            backend:
+              service:
+                name: payment-gateway-mock
+                port:
+                  number: {{ .Values.paymentGateway.service.port }}
+          - path: /network-oss
+            pathType: Prefix
+            backend:
+              service:
+                name: network-oss-mock
+                port:
+                  number: {{ .Values.networkOss.service.port }}
+          - path: /notification-gateway
+            pathType: Prefix
+            backend:
+              service:
+                name: notification-gateway-mock
+                port:
+                  number: {{ .Values.notificationGateway.service.port }}
+{{- end }}

@@ -5,6 +5,17 @@ namespace:
 global:
   host: reto1.telcox.site
 
+ingress:
+  enabled: true
+  className: traefik
+  tls:
+    enabled: true
+    secretName: telcox-external-sim-tls
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.priority: "50"
+    traefik.ingress.kubernetes.io/router.tls: "true"
+
 sri:
   image:
     repository: ghcr.io/jcbodero/telcox-sri-service

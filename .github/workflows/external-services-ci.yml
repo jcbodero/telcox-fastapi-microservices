@@ -127,7 +127,8 @@ jobs:
             --create-namespace \
             --wait \
             --timeout 8m \
-            --set global.host="${INGRESS_HOST}"
+            --set global.host="${INGRESS_HOST}" \
+            --set namespace.create=false
 
       - name: Verify rollout
         shell: bash

@@ -1,7 +1,7 @@
 from typing import Any
 from fastapi import APIRouter, HTTPException, status
-from models import ActiveServicePayload, ActiveServiceResponse
-from repository import repository
+from .models import ActiveServicePayload, ActiveServiceResponse
+from .repository import repository
 
 router = APIRouter(prefix="/service-status-service", tags=["active-services"])
 

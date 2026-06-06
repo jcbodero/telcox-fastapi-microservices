@@ -240,7 +240,7 @@ export default function Home() {
         user={user}
         getAccessToken={getAccessToken}
         onComplete={completeLoginOnboarding}
-        login={login}
+        logout={logout}
       />
     )
   }

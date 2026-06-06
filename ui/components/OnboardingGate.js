@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { postJsonDirect } from '../lib/serviceApi'
+import { getStoredTokens } from '../lib/keycloakAuth'
 
 const STEPS = [
   { id: 1, label: 'Datos' },
@@ -44,7 +45,19 @@ function Stepper({ current }) {
   )
 }
 
-export default function OnboardingGate({ user, getAccessToken, onComplete, login }) {
+function Modal({ title, children, actions }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4">
+      <div className="w-full max-w-xl rounded-[28px] border border-white/80 bg-white p-6 shadow-2xl shadow-slate-900/20">
+        <h2 className="text-xl font-bold text-slate-900">{title}</h2>
+        <div className="mt-4 space-y-3 text-sm text-slate-600">{children}</div>
+        <div className="mt-6 flex flex-wrap justify-end gap-3">{actions}</div>
+      </div>
+    </div>
+  )
+}
+
+export default function OnboardingGate({ user, getAccessToken, onComplete, logout }) {
   const [step, setStep] = useState(1)
   const [documentId, setDocumentId] = useState(user?.username?.replace(/\D/g, '') || '')
   const [fullName, setFullName] = useState(user?.full_name || '')
@@ -62,6 +75,9 @@ export default function OnboardingGate({ user, getAccessToken, onComplete, login
   const [progress, setProgress] = useState('')
   const [verifyResult, setVerifyResult] = useState(null)
   const [consentAccepted, setConsentAccepted] = useState(false)
+  const [consentError, setConsentError] = useState('')
+  const [policyModalOpen, setPolicyModalOpen] = useState(true)
+  const [sessionModal, setSessionModal] = useState(null)
   const [methods, setMethods] = useState({
     password: true,
     passkey: true,
@@ -70,8 +86,57 @@ export default function OnboardingGate({ user, getAccessToken, onComplete, login
     device_biometric: true,
   })
   const [enrolling, setEnrolling] = useState(false)
+  const logoutTimerRef = useRef(null)
+  const sessionWarningShownRef = useRef(false)
 
   useEffect(() => () => stream?.getTracks().forEach((track) => track.stop()), [stream])
+  useEffect(
+    () => () => {
+      if (logoutTimerRef.current) {
+        clearTimeout(logoutTimerRef.current)
+      }
+    },
+    [],
+  )
+
+  const getSessionStatus = () => {
+    const tokens = getStoredTokens()
+    if (!tokens) return { state: 'expired' }
+
+    const now = Math.floor(Date.now() / 1000)
+    if (!tokens.refresh_expires_at || tokens.refresh_expires_at <= now) {
+      return { state: 'expired' }
+    }
+    if (!tokens.expires_at || tokens.expires_at <= now + 60) {
+      return { state: 'warning' }
+    }
+    return { state: 'ok' }
+  }
+
+  const scheduleLogout = (message) => {
+    setSessionModal({
+      title: 'Sesion expirada',
+      message,
+      blocking: true,
+    })
+    setProgress(message)
+    if (logoutTimerRef.current) {
+      clearTimeout(logoutTimerRef.current)
+    }
+    logoutTimerRef.current = setTimeout(() => {
+      logout()
+    }, 1600)
+  }
+
+  const notifyExpiringSession = () => {
+    if (sessionWarningShownRef.current) return
+    sessionWarningShownRef.current = true
+    setSessionModal({
+      title: 'Sesion por expirar',
+      message: 'Tu sesion esta por expirar. Intentaremos renovarla antes de completar la verificacion.',
+      blocking: false,
+    })
+  }
 
   const fillRandomDemoData = () => {
     const profile = DEMO_PROFILES[Math.floor(Math.random() * DEMO_PROFILES.length)]
@@ -120,8 +185,16 @@ export default function OnboardingGate({ user, getAccessToken, onComplete, login
   }
 
   const runVerification = async () => {
+    if (!consentAccepted) {
+      setConsentError('Debes aceptar la politica de datos antes de continuar')
+      setStep(1)
+      return
+    }
+
     setStep(4)
     setVerifyResult(null)
+    setConsentError('')
+    sessionWarningShownRef.current = false
     const stages = [
       'Analizando calidad del documento...',
       'Extrayendo datos mediante OCR...',
@@ -131,11 +204,23 @@ export default function OnboardingGate({ user, getAccessToken, onComplete, login
       'Consultando registros gubernamentales...',
     ]
     for (const stage of stages) {
+      const sessionStatus = getSessionStatus()
+      if (sessionStatus.state === 'expired') {
+        scheduleLogout('La sesion expiro durante la verificacion. Cerraremos la sesion por seguridad.')
+        return
+      }
+      if (sessionStatus.state === 'warning') {
+        notifyExpiringSession()
+      }
       setProgress(stage)
       await new Promise((resolve) => setTimeout(resolve, 500))
     }
     try {
       const token = await getAccessToken()
+      if (!token) {
+        scheduleLogout('La sesion ya no es valida. Cerraremos la sesion para volver a autenticarse.')
+        return
+      }
       const selectedMethods = Object.keys(methods).filter((key) => methods[key])
       const payload = {
         document_id: documentId || '0912345678',
@@ -150,18 +235,19 @@ export default function OnboardingGate({ user, getAccessToken, onComplete, login
         consent_version: '2026-06',
         requested_auth_methods: selectedMethods,
       }
-      if (!consentAccepted) {
-        setProgress('Debes aceptar la politica de datos antes de continuar')
-        return
-      }
       const result = await postJsonDirect('onboarding', '/onboarding-service/onboarding-cases/verify', payload, token)
       setVerifyResult(result)
+      setSessionModal(null)
       if (result.status !== 'completed') {
         setProgress(`Verificacion pendiente: ${result.status}`)
         return
       }
       setStep(5)
     } catch (error) {
+      if (String(error.message || '').toLowerCase().includes('token') || String(error.message || '').toLowerCase().includes('session')) {
+        scheduleLogout('No fue posible renovar la sesion durante la verificacion. Cerraremos la sesion por seguridad.')
+        return
+      }
       setProgress(`Error: ${error.message}`)
     }
   }
@@ -171,6 +257,10 @@ export default function OnboardingGate({ user, getAccessToken, onComplete, login
     setEnrolling(true)
     try {
       const token = await getAccessToken()
+      if (!token) {
+        scheduleLogout('La sesion expiro antes de habilitar el acceso. Cerraremos la sesion por seguridad.')
+        return
+      }
       const selectedMethods = Object.keys(methods).filter((key) => methods[key])
       await postJsonDirect(
         'onboarding',
@@ -189,6 +279,7 @@ export default function OnboardingGate({ user, getAccessToken, onComplete, login
     setVerifyResult(null)
     setProgress('')
     setStep(1)
+    setSessionModal(null)
   }
 
   return (
@@ -202,10 +293,10 @@ export default function OnboardingGate({ user, getAccessToken, onComplete, login
           <p className="mt-1 text-sm text-slate-500">Completa tu verificacion para acceder al portal TelcoX.</p>
           <button
             type="button"
-            onClick={login}
+            onClick={logout}
             className="mt-4 rounded-2xl border border-cyan-200 bg-white px-4 py-2.5 text-sm font-semibold text-cyan-700 transition hover:bg-cyan-50"
           >
-            Ingresar con Keycloak
+            Cerrar sesion
           </button>
         </div>
 
@@ -215,15 +306,28 @@ export default function OnboardingGate({ user, getAccessToken, onComplete, login
           {step === 1 && (
           <div className="space-y-4">
             <div className="rounded-2xl border border-cyan-100 bg-cyan-50/70 p-4">
-              <h2 className="text-sm font-bold text-slate-900">Politica de datos</h2>
-              <p className="mt-1 text-xs text-slate-600">
-                Aceptas el tratamiento de datos personales, documentos de identidad y biometria para la verificacion de identidad y acceso al sistema.
-              </p>
-              <label className="mt-3 flex cursor-pointer items-center gap-3">
-                <input type="checkbox" checked={consentAccepted} onChange={() => setConsentAccepted((prev) => !prev)} />
-                <span className="text-xs font-semibold text-slate-700">Acepto la politica de datos y el consentimiento biometrico</span>
-              </label>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-sm font-bold text-slate-900">Politica de datos</h2>
+                  <p className="mt-1 text-xs text-slate-600">
+                    Debes revisar y aceptar la politica de tratamiento de datos antes de iniciar la validacion.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPolicyModalOpen(true)}
+                  className="rounded-xl border border-cyan-200 bg-white px-3 py-2 text-xs font-bold text-cyan-700 transition hover:bg-cyan-50"
+                >
+                  Ver politica
+                </button>
+              </div>
+              <div className="mt-3 flex items-center gap-3">
+                <span className={`inline-flex rounded-full px-3 py-1 text-[11px] font-bold ${consentAccepted ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                  {consentAccepted ? 'Consentimiento aceptado' : 'Consentimiento pendiente'}
+                </span>
+              </div>
               <p className="mt-2 text-[10px] text-slate-500">Version de politica: 2026-06</p>
+              {consentError && <p className="mt-2 text-xs font-semibold text-rose-600">{consentError}</p>}
             </div>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
@@ -264,7 +368,7 @@ export default function OnboardingGate({ user, getAccessToken, onComplete, login
                   </select>
                 </label>
               </div>
-              <button onClick={() => setStep(2)} disabled={!documentId || !fullName} className="w-full rounded-2xl bg-cyan-600 py-3 text-sm font-bold text-white transition hover:bg-cyan-500 disabled:bg-slate-200 disabled:text-slate-400">
+              <button onClick={() => setStep(2)} disabled={!documentId || !fullName || !consentAccepted} className="w-full rounded-2xl bg-cyan-600 py-3 text-sm font-bold text-white transition hover:bg-cyan-500 disabled:bg-slate-200 disabled:text-slate-400">
                 Continuar
               </button>
             </div>
@@ -391,6 +495,64 @@ export default function OnboardingGate({ user, getAccessToken, onComplete, login
           TelcoX - Verificacion segura con KYC - Datos encriptados y protegidos.
         </p>
       </div>
+
+      {policyModalOpen && (
+        <Modal
+          title="Politica de datos y consentimiento"
+          actions={[
+            <button
+              key="close"
+              type="button"
+              onClick={() => {
+                if (consentAccepted) {
+                  setPolicyModalOpen(false)
+                } else {
+                  setConsentError('Debes aceptar la politica para continuar con el onboarding')
+                }
+              }}
+              className="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+            >
+              Cerrar
+            </button>,
+            <button
+              key="accept"
+              type="button"
+              onClick={() => {
+                setConsentAccepted(true)
+                setConsentError('')
+                setPolicyModalOpen(false)
+              }}
+              className="rounded-2xl bg-cyan-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-cyan-500"
+            >
+              Aceptar politica
+            </button>,
+          ]}
+        >
+          <p>Autorizas el tratamiento de datos personales, documentos de identidad y biometria para validacion de identidad, prevencion de fraude y habilitacion de acceso seguro al sistema.</p>
+          <p>El tratamiento incluye evidencia documental, verificacion facial, trazabilidad de auditoria y controles de cumplimiento durante el ciclo de vida del onboarding.</p>
+          <p>Version vigente: <span className="font-semibold text-slate-800">2026-06</span>.</p>
+        </Modal>
+      )}
+
+      {sessionModal && (
+        <Modal
+          title={sessionModal.title}
+          actions={[
+            !sessionModal.blocking && (
+              <button
+                key="ack"
+                type="button"
+                onClick={() => setSessionModal(null)}
+                className="rounded-2xl bg-cyan-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-cyan-500"
+              >
+                Entendido
+              </button>
+            ),
+          ].filter(Boolean)}
+        >
+          <p>{sessionModal.message}</p>
+        </Modal>
+      )}
     </div>
   )
 }

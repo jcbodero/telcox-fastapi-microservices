@@ -1,0 +1,6 @@
+apiVersion: v2
+name: telcox-postgres
+description: PostgreSQL audit and operational persistence for TelcoX
+type: application
+version: 0.1.0
+appVersion: "16"

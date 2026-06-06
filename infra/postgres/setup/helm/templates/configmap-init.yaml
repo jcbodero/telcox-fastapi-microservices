@@ -1,0 +1,12 @@
+{{- if .Values.initdb.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-init
+  labels:
+    app.kubernetes.io/name: {{ .Chart.Name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+data:
+  init.sql: |-
+{{ .Files.Get "files/init.sql" | indent 4 }}
+{{- end }}

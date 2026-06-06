@@ -20,7 +20,7 @@ env:
   NAMESPACE: telcox
   CHART_PATH: services/audit_service/setup/helm
   KUBECONFIG: /home/julio/.kube/config
-  INGRESS_HOST: ${{ vars.PUBLIC_HOST || vars.DUCKDNS_HOST || 'reto1.telcox.site' }}
+  INGRESS_HOST: ${{ vars.PUBLIC_HOST  || 'reto1.telcox.site' }}
 
 jobs:
   build-push-and-deploy:

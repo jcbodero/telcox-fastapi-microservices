@@ -134,7 +134,7 @@ El workflow usa:
 - Imagen: `ghcr.io/jcbodero/telcox-audit-service`
 - Helm chart: `services/audit_service/setup/helm`
 - Namespace Kubernetes: `telcox`
-- Variable GitHub Actions: `DUCKDNS_HOST`
+- Variable GitHub Actions: `PUBLIC_HOST`
 
 El pipeline se ejecuta cuando hay cambios en:
 
@@ -148,7 +148,7 @@ Configura esta variable en GitHub:
 
 ```text
 Repository > Settings > Secrets and variables > Actions > Variables
-DUCKDNS_HOST=reto1.telcox.site
+PUBLIC_HOST=reto1.telcox.site
 ```
 
 Requisitos en el servidor Ubuntu donde corre el runner:
@@ -243,7 +243,7 @@ KUBECONFIG=/home/julio/.kube/config kubectl get pods -n kube-system | grep traef
 KUBECONFIG=/home/julio/.kube/config kubectl get ingressclass
 ```
 
-Audit Service queda expuesto por defecto con Traefik, TLS y DuckDNS:
+Audit Service queda expuesto por defecto con Traefik, TLS :
 
 ```yaml
 ingress:
@@ -258,13 +258,7 @@ basePath: /audit-service
 
 Los demas microservicios tienen `ingress.enabled: false` y pueden activarse con `--set ingress.enabled=true`.
 
-Con DuckDNS se recomienda usar un solo host y enrutar por base path:
 
-```text
-https://reto1.telcox.site/audit-service/health
-https://reto1.telcox.site/customer-service/health
-https://reto1.telcox.site/catalog-service/health
-```
 
 Probar Audit Service sin `port-forward`:
 
@@ -285,46 +279,10 @@ helm upgrade --install customer-service services/customer_service/setup/helm \
   --set ingress.host=reto1.telcox.site
 ```
 
-## TLS gratis con DuckDNS
-
-El proyecto incluye configuracion para emitir certificados gratuitos de Let's Encrypt con DuckDNS y Traefik:
-
-- `infra/k3s-traefik-duckdns/traefik-duckdns-helmchartconfig.yaml`
-- `infra/k3s-traefik-duckdns/README.md`
-
-Cada Ingress queda preparado con:
-
-```yaml
-traefik.ingress.kubernetes.io/router.entrypoints: websecure
-traefik.ingress.kubernetes.io/router.tls: "true"
-```
-
-Usa un host publico de DuckDNS, por ejemplo:
-
-```text
-reto1.telcox.site
-```
-
-Desplegar Audit Service con HTTPS:
-
-```bash
-helm upgrade --install audit-service services/audit_service/setup/helm \
-  --namespace telcox \
-  --create-namespace \
-  --set image.repository=ghcr.io/jcbodero/telcox-audit-service \
-  --set image.tag=latest \
-  --set ingress.host=reto1.telcox.site
-```
-
-Probar:
-
-```bash
-curl https://reto1.telcox.site/audit-service/health
-```
 
 ## Cloudflare Tunnel para evitar CGNAT
 
-Si tu proveedor usa CGNAT, DuckDNS puede resolver el dominio pero el trafico externo no llega a tu router. Para ese caso el proyecto incluye una alternativa con Cloudflare Tunnel:
+Si tu proveedor usa CGNAT puede resolver el dominio pero el trafico externo no llega a tu router. Para ese caso el proyecto incluye una alternativa con Cloudflare Tunnel:
 
 - `infra/cloudflare-tunnel/README.md`
 - `infra/cloudflare-tunnel/config.example.yml`
@@ -349,7 +307,7 @@ Repository > Settings > Secrets and variables > Actions > Variables
 PUBLIC_HOST=reto1.telcox.site
 ```
 
-El workflow de `audit_service` usa `PUBLIC_HOST` para actualizar el host del Ingress durante el despliegue. Si no existe `PUBLIC_HOST`, usa `DUCKDNS_HOST` como respaldo.
+El workflow de `audit_service` usa `PUBLIC_HOST` para actualizar el host del Ingress durante el despliegue. Si no existe `PUBLIC_HOST`
 
 ## Autenticacion OAuth2/OIDC con Keycloak
 
@@ -435,19 +393,59 @@ Herramientas posibles: Auth0, Okta, Azure AD B2C / Microsoft Entra External ID, 
 
 El onboarding debe validar identidad con documento, prueba de vida y comparacion facial. Herramientas de industria posibles: Onfido, Jumio, Veriff, Facephi, AWS Rekognition o Azure AI Vision, dependiendo de requisitos legales, cobertura regional y presupuesto.
 
+En esta implementacion, `Onboarding Service` expone un flujo simulado de KYC:
+
+- `POST /onboarding-service/onboarding-cases/verify`: valida documento, consentimiento, prueba de vida y comparacion facial simulada.
+- `POST /onboarding-service/onboarding-cases/{case_id}/auth-methods`: habilita metodos de acceso solo si la verificacion quedo `completed`.
+- `GET /onboarding-service/security-recommendations`: lista herramientas recomendadas para identidad, documento, rostro y MFA.
+
+El servicio no guarda imagenes ni plantillas biometricas crudas. Las evidencias enviadas se representan como referencias `sha256:*`; en produccion deberian almacenarse cifradas en un repositorio seguro o delegarse al proveedor KYC. La contrasena y passkeys se consideran responsabilidad del proveedor OIDC, por ejemplo Keycloak, Auth0, Okta, Microsoft Entra External ID o Amazon Cognito. La huella y el rostro para login se modelan como biometria local del dispositivo o WebAuthn/passkeys, no como datos biometricos centralizados.
+
 ## Notificaciones confiables
 
 Para cumplir con la exigencia de al menos dos metodos, se recomienda email + SMS como base y push como canal adicional. En produccion, este servicio deberia usar cola de mensajes, reintentos, idempotencia, dead-letter queue y trazabilidad por evento.
 
 ## Persistencia y consultas frecuentes
 
-Aunque este codigo no usa base de datos por solicitud del usuario, la arquitectura objetivo podria usar:
+Para persistencia y consultas frecuentes, la arquitectura objetivo usa:
 
 - Base transaccional por microservicio.
 - Base de auditoria append-only.
 - Cache distribuida con Redis aplicando Cache-Aside.
 - CQRS para separar comandos de consultas frecuentes.
 - Patron Repository para reutilizar componentes de acceso a datos cuando exista persistencia real.
+
+La implementacion incluye bases locales para desarrollo en `docker-compose.yml`, pero produccion no depende de Docker Compose. Para Kubernetes se agregan charts Helm propios:
+
+- `infra/postgres/setup/helm`: PostgreSQL con `StatefulSet`, PVC, Secret, Service e inicializacion SQL.
+- `infra/mongo/setup/helm`: MongoDB con `StatefulSet`, PVC, Secret, Service e inicializacion JS.
+
+PostgreSQL queda como alternativa principal para auditoria por su consistencia, SQL, indices compuestos y soporte JSONB; MongoDB queda como alternativa documental para eventos flexibles. El script `infra/postgres/init.sql` crea `audit_events`, indices por `service`, `resource_id`, `resource_type`, `user_id`, `timestamp` y vistas de resumen/fallos. El script `infra/mongo/init.js` crea la coleccion equivalente con validacion e indices.
+
+Buenas practicas aplicadas:
+
+- `AuditRepository` + `AuditManager`: centralizan el registro de acciones de usuario.
+- `AuditSink` como Strategy: permite escribir en memoria/archivo para desarrollo y en PostgreSQL cuando `AUDIT_BACKEND=postgres`.
+- Redaccion de datos sensibles: tokens, contrasenas, imagenes y plantillas biometricas no se escriben en auditoria.
+- `CachedRepository`: wrapper Cache-Aside reutilizable sobre cualquier repositorio.
+- Invalidacion en escrituras: `create`, `update` y `delete` invalidan claves de lista e item.
+- TTL configurable para consultas frecuentes.
+
+Despliegue Kubernetes recomendado:
+
+```bash
+helm upgrade --install telcox-postgres infra/postgres/setup/helm \
+  --namespace telcox \
+  --create-namespace \
+  --set auth.password='PASSWORD_POSTGRES'
+
+helm upgrade --install telcox-mongo infra/mongo/setup/helm \
+  --namespace telcox \
+  --create-namespace \
+  --set auth.password='PASSWORD_MONGO'
+```
+
+Los charts de `customer_service` y `onboarding_service` leen `POSTGRES_URL` desde el Secret `telcox-postgres-auth`, clave `url`. Si se usa un gestor de secretos externo, sobrescribir `audit.postgresUrlSecretName` y `audit.postgresUrlSecretKey` en los valores Helm del microservicio.
 
 ## Cumplimiento normativo
 

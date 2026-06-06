@@ -29,6 +29,24 @@ spec:
             - name: http
               containerPort: {{ .Values.service.targetPort }}
               protocol: TCP
+          env:
+            - name: AUDIT_BACKEND
+              value: {{ .Values.audit.backend | quote }}
+            {{- if eq .Values.audit.backend "postgres" }}
+            - name: POSTGRES_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.audit.postgresUrlSecretName | quote }}
+                  key: {{ .Values.audit.postgresUrlSecretKey | quote }}
+            {{- end }}
+            - name: IDENTITY_PROVIDER
+              value: {{ .Values.identity.provider | quote }}
+            - name: KEYCLOAK_REALM
+              value: {{ .Values.identity.keycloakRealm | quote }}
+            - name: KYC_PROVIDER
+              value: {{ .Values.identity.kycProvider | quote }}
+            - name: FACE_PROVIDER
+              value: {{ .Values.identity.faceProvider | quote }}
           readinessProbe:
             httpGet:
               path: "{{ .Values.basePath }}/health"

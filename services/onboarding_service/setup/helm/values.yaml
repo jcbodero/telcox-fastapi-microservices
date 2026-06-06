@@ -9,6 +9,17 @@ imagePullSecrets: []
 
 basePath: /onboarding-service
 
+identity:
+  provider: keycloak
+  keycloakRealm: telcox
+  kycProvider: mock-kyc
+  faceProvider: mock-face-match
+
+audit:
+  backend: postgres
+  postgresUrlSecretName: telcox-postgres-auth
+  postgresUrlSecretKey: url
+
 service:
   type: ClusterIP
   port: 80

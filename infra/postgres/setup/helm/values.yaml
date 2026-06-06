@@ -1,0 +1,32 @@
+replicaCount: 1
+
+image:
+  repository: postgres
+  tag: "16-alpine"
+  pullPolicy: IfNotPresent
+
+auth:
+  database: telcox_audit
+  username: telcox
+  existingSecret: ""
+  passwordKey: password
+  password: ""
+
+service:
+  type: ClusterIP
+  port: 5432
+
+storage:
+  size: 8Gi
+  storageClassName: ""
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 768Mi
+
+initdb:
+  enabled: true

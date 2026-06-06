@@ -29,6 +29,16 @@ spec:
             - name: http
               containerPort: {{ .Values.service.targetPort }}
               protocol: TCP
+          env:
+            - name: AUDIT_BACKEND
+              value: {{ .Values.audit.backend | quote }}
+            {{- if eq .Values.audit.backend "postgres" }}
+            - name: POSTGRES_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.audit.postgresUrlSecretName | quote }}
+                  key: {{ .Values.audit.postgresUrlSecretKey | quote }}
+            {{- end }}
           readinessProbe:
             httpGet:
               path: "{{ .Values.basePath }}/health"

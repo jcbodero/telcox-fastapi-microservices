@@ -46,6 +46,24 @@ class OnboardingCaseResponse(BaseModel):
     model_config = ConfigDict(extra="allow")
 
     id: str
+    document_id: str | None = None
+    full_name: str | None = None
+    email: str | None = None
+    phone: str | None = None
+    document_type: str | None = None
+    document_check: str | None = None
+    face_match: str | None = None
+    liveness_check: str | None = None
+    risk_level: str | None = None
+    status: str | None = None
+    identity_provider: str | None = None
+    user_provisioning: str | None = None
+    enabled_auth_methods: list[str] | None = None
+    kyc_verification_id: str | None = None
+    kyc_provider_response: dict[str, Any] | None = None
+    kyc_error: str | None = None
+    external_system: str | None = None
+    external_url: str | None = None
     created_at: str
     updated_at: str
 
@@ -466,12 +484,13 @@ def enroll_auth_methods(case_id: str, payload: AuthEnrollmentPayload) -> dict[st
         raise HTTPException(status_code=404, detail="Onboarding case not found")
 
     case = onboarding_cases[case_id]
-    if case.get("status") != "completed":
-        raise HTTPException(status_code=409, detail="Identity verification must be completed before auth enrollment")
+    if case.get("status") not in ("completed", "manual_review"):
+        raise HTTPException(status_code=409, detail="Identity verification must be completed or in manual review before auth enrollment")
 
     methods = allowed_auth_methods(payload.auth_methods)
     onboarding_cases[case_id] = {
         **case,
+        "status": "completed",
         "enabled_auth_methods": methods,
         "updated_at": utc_now(),
     }

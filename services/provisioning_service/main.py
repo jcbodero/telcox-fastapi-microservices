@@ -25,6 +25,16 @@ class OrderResponse(BaseModel):
     model_config = ConfigDict(extra="allow")
 
     id: str
+    customer_id: str | None = None
+    product_id: str | None = None
+    operation: str | None = None
+    status: str | None = None
+    channel: str | None = None
+    network_reference_id: str | None = None
+    network_node: str | None = None
+    network_oss_error: str | None = None
+    external_system: str | None = None
+    external_url: str | None = None
     created_at: str
     updated_at: str
 

@@ -18,6 +18,17 @@ class InvoiceResponse(BaseModel):
     model_config = ConfigDict(extra="allow")
 
     id: str
+    customer_id: str | None = None
+    amount: float | None = None
+    currency: str | None = None
+    status: str | None = None
+    due_date: str | None = None
+    sri_status: str | None = None
+    sri_access_key: str | None = None
+    sri_authorized_at: str | None = None
+    sri_error: str | None = None
+    external_system: str | None = None
+    external_url: str | None = None
     created_at: str
     updated_at: str
 

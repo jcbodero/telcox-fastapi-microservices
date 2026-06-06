@@ -18,6 +18,18 @@ class PaymentResponse(BaseModel):
     model_config = ConfigDict(extra="allow")
 
     id: str
+    customer_id: str | None = None
+    amount: float | None = None
+    currency: str | None = None
+    method: str | None = None
+    invoice_id: str | None = None
+    status: str | None = None
+    gateway_reference: str | None = None
+    gateway_transaction_id: str | None = None
+    gateway_authorization_code: str | None = None
+    gateway_error: str | None = None
+    external_system: str | None = None
+    external_url: str | None = None
     created_at: str
     updated_at: str
 

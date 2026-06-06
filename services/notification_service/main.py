@@ -18,6 +18,17 @@ class NotificationResponse(BaseModel):
     model_config = ConfigDict(extra="allow")
 
     id: str
+    customer_id: str | None = None
+    channel: str | None = None
+    event_type: str | None = None
+    message: str | None = None
+    status: str | None = None
+    attempts: int | None = None
+    gateway_message_id: str | None = None
+    gateway_provider: str | None = None
+    gateway_error: str | None = None
+    external_system: str | None = None
+    external_url: str | None = None
     created_at: str
     updated_at: str
 

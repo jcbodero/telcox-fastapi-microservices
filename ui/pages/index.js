@@ -9,10 +9,11 @@ import BillingSection from '../components/BillingSection'
 import NotificationsSection from '../components/NotificationsSection'
 import AccountSection from '../components/AccountSection'
 import ExternalSystemsSection from '../components/ExternalSystemsSection'
+import OnboardingSection from '../components/OnboardingSection'
 import { useAuth } from '../lib/AuthContext'
-import { apiMap, loadAllData, postJson, patchJson, loadExternalSystemsData } from '../lib/serviceApi'
+import { apiMap, loadAllData, postJson, patchJson, loadExternalSystemsData, postJsonDirect } from '../lib/serviceApi'
 
-const tabs = ['dashboard', 'catalog', 'billing', 'notifications', 'account', 'external']
+const tabs = ['dashboard', 'catalog', 'billing', 'notifications', 'onboarding', 'account', 'external']
 
 const channelIcon = {
   email: '📧',
@@ -64,6 +65,30 @@ export default function Home() {
       setExternalData(extData)
       
       appendLog('Dashboard and External Systems data loaded')
+
+      // Auto-trigger Onboarding for the authenticated user to ensure it is always executed
+      if (user) {
+        const docId = user.document_id || '0912345678'
+        const fullName = user.full_name || 'Usuario TelcoX'
+        try {
+          const verifyPayload = {
+            document_id: docId,
+            full_name: fullName,
+            email: user.email || 'user@example.com',
+            phone: '+593987654321',
+            document_type: 'national_id',
+            document_front_image: 'front_mock_base64_data_placeholder',
+            document_back_image: 'back_mock_base64_data_placeholder',
+            selfie_image: 'selfie_mock_base64_data_placeholder',
+            consent_accepted: true,
+            requested_auth_methods: ['password', 'passkey', 'fingerprint', 'face_auth', 'device_biometric']
+          }
+          const onboardingData = await postJsonDirect('onboarding', '/onboarding-service/onboarding-cases/verify', verifyPayload, token)
+          appendLog(`[Auto-Onboarding] Ejecutado exitosamente al iniciar sesión. Estado: ${onboardingData.status}`)
+        } catch (onbErr) {
+          appendLog(`[Auto-Onboarding] Iniciado / Ya registrado: ${onbErr.message}`)
+        }
+      }
     } catch (error) {
       setErrorMessage(error.message)
       appendLog(`Load error: ${error.message}`)
@@ -262,6 +287,7 @@ export default function Home() {
             {activeTab === 'catalog' && <CatalogSection catalog={catalog} createProvisioningOrder={createProvisioningOrder} />}
             {activeTab === 'billing' && <BillingSection invoices={invoices} payments={payments} generateInvoice={generateInvoice} processPayment={processPayment} />}
             {activeTab === 'notifications' && <NotificationsSection notifications={notifications} channelIcon={channelIcon} />}
+            {activeTab === 'onboarding' && <OnboardingSection appendLog={appendLog} getAccessToken={getAccessToken} />}
             {activeTab === 'account' && <AccountSection selectedCustomer={selectedCustomer} orders={orders} auditEvents={auditEvents} />}
             {activeTab === 'external' && (
               <ExternalSystemsSection

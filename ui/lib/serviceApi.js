@@ -85,6 +85,15 @@ export const postJson = async (service, path, payload, token = null) => {
   return response
 }
 
+export const postJsonDirect = async (service, path, payload, token = null) => {
+  const response = await fetchJson(buildUrl(service, path), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  }, token)
+  return response
+}
+
 export const patchJson = async (service, path, payload, token = null) => {
   const response = await fetchJson(buildUrl(service, path), {
     method: 'PATCH',

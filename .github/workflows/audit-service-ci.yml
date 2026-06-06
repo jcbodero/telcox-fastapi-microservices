@@ -1,13 +1,6 @@
 name: Audit Service CI/CD
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - "requirements.txt"
-      - "services/audit_service/**"
-      - ".github/workflows/audit-service-ci.yml"
   workflow_dispatch:
 
 permissions:

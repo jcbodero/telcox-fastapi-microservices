@@ -14,6 +14,7 @@ on:
       - "services/payment_service/**"
       - "services/notification_service/**"
       - "services/onboarding_service/**"
+      - "services/audit_service/**"
       - ".github/workflows/microservices-ci.yml"
   workflow_dispatch:
 
@@ -62,6 +63,9 @@ jobs:
           - service: onboarding_service
             release: onboarding-service
             image: telcox-onboarding-service
+          - service: audit_service
+            release: audit-service
+            image: telcox-audit-service
 
     steps:
       - name: Checkout repository

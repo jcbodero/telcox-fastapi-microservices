@@ -123,11 +123,17 @@ docker build -f services/audit_service/setup/Dockerfile -t telcox/audit-service:
 
 ## CI/CD de Audit Service con GitHub Actions
 
-El microservicio `audit_service` tiene configurado un pipeline en:
+El microservicio `audit_service` se despliega dentro del pipeline general de microservicios:
+
+- `.github/workflows/microservices-ci.yml`
+
+Tambien existe un pipeline manual de respaldo en:
 
 - `.github/workflows/audit-service-ci.yml`
 
-El workflow usa:
+Ese pipeline dedicado solo se ejecuta con `workflow_dispatch`, para evitar doble despliegue cuando hay cambios en `services/audit_service/**`.
+
+Los workflows usan:
 
 - `runs-on: self-hosted`
 - GitHub Container Registry: `ghcr.io`
@@ -136,13 +142,13 @@ El workflow usa:
 - Namespace Kubernetes: `telcox`
 - Variable GitHub Actions: `PUBLIC_HOST`
 
-El pipeline se ejecuta cuando hay cambios en:
+El pipeline general se ejecuta cuando hay cambios en:
 
 - `requirements.txt`
 - `services/audit_service/**`
-- `.github/workflows/audit-service-ci.yml`
+- `.github/workflows/microservices-ci.yml`
 
-Tambien puede ejecutarse manualmente desde GitHub con `workflow_dispatch`.
+El pipeline dedicado de Audit Service puede ejecutarse manualmente desde GitHub con `workflow_dispatch`.
 
 Configura esta variable en GitHub:
 
@@ -192,7 +198,7 @@ Si la imagen es publica, no hace falta `imagePullSecrets`.
 
 Tambien estan configurados pipelines independientes para evitar conflictos entre despliegues:
 
-- `.github/workflows/microservices-ci.yml`: despliega Customer, Catalog, Service Status, Provisioning, Billing, Payment, Notification y Onboarding.
+- `.github/workflows/microservices-ci.yml`: despliega Customer, Catalog, Service Status, Provisioning, Billing, Payment, Notification, Onboarding y Audit.
 - `.github/workflows/ui-ci.yml`: construye y despliega la UI Next.js.
 
 Los workflows usan:

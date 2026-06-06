@@ -3,7 +3,7 @@ FROM node:20-alpine AS deps
 WORKDIR /app
 
 COPY ui/package*.json ./
-RUN npm ci
+RUN npm ci --no-audit --no-fund
 
 FROM node:20-alpine AS builder
 
@@ -30,12 +30,12 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3000
 
-COPY --from=builder /app/package*.json ./
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/next.config.js ./next.config.js
+COPY --from=builder --chown=node:node /app/.next/standalone ./
+COPY --from=builder --chown=node:node /app/.next/static ./.next/static
+COPY --from=builder --chown=node:node /app/public ./public
 
 EXPOSE 3000
 
-CMD ["npm", "run", "start"]
+USER node
+
+CMD ["node", "server.js"]

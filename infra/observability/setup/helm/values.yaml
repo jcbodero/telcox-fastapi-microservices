@@ -22,11 +22,11 @@ grafana:
     storageClassName: local-path
   resources:
     requests:
-      cpu: 100m
-      memory: 256Mi
+      cpu: 50m
+      memory: 128Mi
     limits:
-      cpu: 500m
-      memory: 512Mi
+      cpu: 100m
+      memory: 192Mi
 
 loki:
   image: grafana/loki:2.9.8
@@ -39,18 +39,18 @@ loki:
     storageClassName: local-path
   resources:
     requests:
-      cpu: 100m
-      memory: 256Mi
+      cpu: 50m
+      memory: 192Mi
     limits:
-      cpu: 500m
-      memory: 768Mi
+      cpu: 150m
+      memory: 384Mi
 
 promtail:
   image: grafana/promtail:2.9.8
   resources:
     requests:
-      cpu: 50m
-      memory: 128Mi
+      cpu: 20m
+      memory: 64Mi
     limits:
-      cpu: 250m
-      memory: 256Mi
+      cpu: 50m
+      memory: 96Mi

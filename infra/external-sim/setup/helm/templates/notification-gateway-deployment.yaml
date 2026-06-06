@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notification-gateway-mock
+  namespace: {{ .Values.namespace.name | quote }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: notification-gateway-mock
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: notification-gateway-mock
+    spec:
+      containers:
+        - name: notification-gateway-mock
+          image: "{{ .Values.notificationGateway.image.repository }}:{{ .Values.notificationGateway.image.tag }}"
+          imagePullPolicy: {{ .Values.notificationGateway.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.notificationGateway.service.targetPort }}
+          resources:
+            {{- toYaml .Values.notificationGateway.resources | nindent 12 }}

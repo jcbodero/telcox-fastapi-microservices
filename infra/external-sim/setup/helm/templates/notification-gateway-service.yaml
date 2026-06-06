@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: notification-gateway-mock
+  namespace: {{ .Values.namespace.name | quote }}
+spec:
+  type: {{ .Values.notificationGateway.service.type }}
+  selector:
+    app.kubernetes.io/name: notification-gateway-mock
+  ports:
+    - port: {{ .Values.notificationGateway.service.port }}
+      targetPort: {{ .Values.notificationGateway.service.targetPort }}

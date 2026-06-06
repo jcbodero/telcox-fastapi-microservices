@@ -1,0 +1,91 @@
+namespace:
+  create: true
+  name: external-sim
+
+global:
+  host: reto1.telcox.site
+
+sri:
+  image:
+    repository: ghcr.io/jcbodero/telcox-sri-service
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 8000
+  resources:
+    requests:
+      cpu: 20m
+      memory: 96Mi
+    limits:
+      cpu: 80m
+      memory: 160Mi
+
+kyc:
+  image:
+    repository: ghcr.io/jcbodero/telcox-kyc-identity-mock
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 8013
+  resources:
+    requests:
+      cpu: 20m
+      memory: 96Mi
+    limits:
+      cpu: 80m
+      memory: 160Mi
+
+networkOss:
+  image:
+    repository: ghcr.io/jcbodero/telcox-network-oss-mock
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 8012
+  resources:
+    requests:
+      cpu: 20m
+      memory: 96Mi
+    limits:
+      cpu: 80m
+      memory: 160Mi
+
+notificationGateway:
+  image:
+    repository: ghcr.io/jcbodero/telcox-notification-gateway-mock
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 8014
+  resources:
+    requests:
+      cpu: 20m
+      memory: 96Mi
+    limits:
+      cpu: 80m
+      memory: 160Mi
+
+paymentGateway:
+  image:
+    repository: ghcr.io/jcbodero/telcox-payment-gateway-mock
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 8011
+  resources:
+    requests:
+      cpu: 20m
+      memory: 96Mi
+    limits:
+      cpu: 80m
+      memory: 160Mi

@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: sri-service
+  namespace: {{ .Values.namespace.name | quote }}
+spec:
+  type: {{ .Values.sri.service.type }}
+  selector:
+    app.kubernetes.io/name: sri-service
+  ports:
+    - port: {{ .Values.sri.service.port }}
+      targetPort: {{ .Values.sri.service.targetPort }}

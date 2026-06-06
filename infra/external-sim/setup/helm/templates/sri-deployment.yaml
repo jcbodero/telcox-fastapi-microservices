@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sri-service
+  namespace: {{ .Values.namespace.name | quote }}
+spec:
+  replicas: {{ .Values.sri.replicaCount | default 1 }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: sri-service
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: sri-service
+    spec:
+      containers:
+        - name: sri-service
+          image: "{{ .Values.sri.image.repository }}:{{ .Values.sri.image.tag }}"
+          imagePullPolicy: {{ .Values.sri.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.sri.service.targetPort }}
+          resources:
+            {{- toYaml .Values.sri.resources | nindent 12 }}

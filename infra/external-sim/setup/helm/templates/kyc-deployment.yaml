@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kyc-identity-mock
+  namespace: {{ .Values.namespace.name | quote }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: kyc-identity-mock
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: kyc-identity-mock
+    spec:
+      containers:
+        - name: kyc-identity-mock
+          image: "{{ .Values.kyc.image.repository }}:{{ .Values.kyc.image.tag }}"
+          imagePullPolicy: {{ .Values.kyc.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.kyc.service.targetPort }}
+          resources:
+            {{- toYaml .Values.kyc.resources | nindent 12 }}

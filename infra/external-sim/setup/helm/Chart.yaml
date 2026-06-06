@@ -1,0 +1,6 @@
+apiVersion: v2
+name: external-sim
+description: TelcoX simulated external services namespace
+type: application
+version: 0.1.0
+appVersion: "1.0.0"

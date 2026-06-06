@@ -370,6 +370,60 @@ PUBLIC_HOST=reto1.telcox.site
 
 Los workflows usan `PUBLIC_HOST` para actualizar el host del Ingress durante el despliegue. Si no existe `PUBLIC_HOST`, usan `reto1.telcox.site` como valor por defecto.
 
+## Observabilidad con Grafana y Loki
+
+El proyecto incluye un stack de observabilidad desplegable directamente en Kubernetes:
+
+- Grafana: consulta y visualizacion de logs.
+- Loki: almacenamiento de logs.
+- Promtail: recoleccion de logs de todos los pods del cluster.
+
+Archivos:
+
+```text
+infra/observability
+```
+
+Despliegue manual:
+
+```bash
+KUBECONFIG=/home/julio/.kube/config helm upgrade --install observability infra/observability/setup/helm \
+  --namespace observability \
+  --create-namespace \
+  --set global.host=reto1.telcox.site \
+  --set grafana.adminPassword='CAMBIA_ESTA_PASSWORD' \
+  --wait \
+  --timeout 5m
+```
+
+Tambien hay un workflow manual:
+
+```text
+.github/workflows/observability-ci.yml
+```
+
+Configurar en GitHub Actions:
+
+```text
+Repository > Settings > Secrets and variables > Actions > Secrets
+GRAFANA_ADMIN_PASSWORD=una_password_segura
+```
+
+Acceso:
+
+```text
+https://reto1.telcox.site/grafana
+```
+
+Consultas LogQL utiles:
+
+```logql
+{namespace="telcox"}
+{namespace="telcox", app="audit-service"}
+{namespace="identity"}
+{namespace="telcox"} |= "ERROR"
+```
+
 ## Autenticacion OAuth2/OIDC con Keycloak
 
 El proyecto incluye una propuesta desplegable de Keycloak en el mismo dominio bajo otra ruta:

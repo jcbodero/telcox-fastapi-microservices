@@ -10,8 +10,9 @@ import NotificationsSection from '../components/NotificationsSection'
 import AccountSection from '../components/AccountSection'
 import ExternalSystemsSection from '../components/ExternalSystemsSection'
 import OnboardingSection from '../components/OnboardingSection'
+import OnboardingGate from '../components/OnboardingGate'
 import { useAuth } from '../lib/AuthContext'
-import { apiMap, loadAllData, postJson, patchJson, loadExternalSystemsData, postJsonDirect } from '../lib/serviceApi'
+import { apiMap, loadAllData, postJson, patchJson, loadExternalSystemsData } from '../lib/serviceApi'
 
 const tabs = ['dashboard', 'catalog', 'billing', 'notifications', 'onboarding', 'account', 'external']
 
@@ -36,6 +37,7 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState('dashboard')
   const [errorMessage, setErrorMessage] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [isOnboardingVerified, setIsOnboardingVerified] = useState(false)
 
   const appendLog = (message) => {
     setLog((prev) => [
@@ -66,29 +68,6 @@ export default function Home() {
       
       appendLog('Dashboard and External Systems data loaded')
 
-      // Auto-trigger Onboarding for the authenticated user to ensure it is always executed
-      if (user) {
-        const docId = user.document_id || '0912345678'
-        const fullName = user.full_name || 'Usuario TelcoX'
-        try {
-          const verifyPayload = {
-            document_id: docId,
-            full_name: fullName,
-            email: user.email || 'user@example.com',
-            phone: '+593987654321',
-            document_type: 'national_id',
-            document_front_image: 'front_mock_base64_data_placeholder',
-            document_back_image: 'back_mock_base64_data_placeholder',
-            selfie_image: 'selfie_mock_base64_data_placeholder',
-            consent_accepted: true,
-            requested_auth_methods: ['password', 'passkey', 'fingerprint', 'face_auth', 'device_biometric']
-          }
-          const onboardingData = await postJsonDirect('onboarding', '/onboarding-service/onboarding-cases/verify', verifyPayload, token)
-          appendLog(`[Auto-Onboarding] Ejecutado exitosamente al iniciar sesión. Estado: ${onboardingData.status}`)
-        } catch (onbErr) {
-          appendLog(`[Auto-Onboarding] Iniciado / Ya registrado: ${onbErr.message}`)
-        }
-      }
     } catch (error) {
       setErrorMessage(error.message)
       appendLog(`Load error: ${error.message}`)
@@ -126,8 +105,18 @@ export default function Home() {
   }
 
   useEffect(() => {
-    if (isAuthenticated) loadData()
-  }, [isAuthenticated])
+    if (!isAuthenticated) {
+      setIsOnboardingVerified(false)
+      return
+    }
+    if (isOnboardingVerified) loadData()
+  }, [isAuthenticated, isOnboardingVerified])
+
+  const completeLoginOnboarding = () => {
+    setIsOnboardingVerified(true)
+    setActiveTab('dashboard')
+    appendLog('Onboarding de inicio de sesion completado')
+  }
 
   const createCustomer = async () => {
     try {
@@ -242,6 +231,16 @@ export default function Home() {
           </button>
         </div>
       </div>
+    )
+  }
+
+  if (!isOnboardingVerified) {
+    return (
+      <OnboardingGate
+        user={user}
+        getAccessToken={getAccessToken}
+        onComplete={completeLoginOnboarding}
+      />
     )
   }
 

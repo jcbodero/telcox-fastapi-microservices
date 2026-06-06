@@ -1,0 +1,17 @@
+{{- if .Values.loki.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: loki-data
+  labels:
+    app.kubernetes.io/name: loki
+    {{- include "telcox-observability.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: {{ .Values.loki.persistence.storageClassName | quote }}
+  resources:
+    requests:
+      storage: {{ .Values.loki.persistence.size | quote }}
+{{- end }}
+

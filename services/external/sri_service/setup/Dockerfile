@@ -10,9 +10,11 @@ WORKDIR /app
 
 COPY requirements.txt /app/requirements.txt
 RUN pip install --no-compile -r /app/requirements.txt \
-    && useradd --create-home --shell /usr/sbin/nologin appuser
+    && useradd --create-home --shell /usr/sbin/nologin appuser \
+    && mkdir -p /app/logs \
+    && chown -R appuser:appuser /app
 
-COPY services/external/sri_service /app
+COPY --chown=appuser:appuser services/external/sri_service /app
 
 EXPOSE 8000
 

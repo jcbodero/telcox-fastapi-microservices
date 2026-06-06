@@ -358,6 +358,12 @@ Mas detalle:
 infra/identity/keycloak/README.md
 ```
 
+La UI Next.js ya incluye login OIDC con PKCE usando Keycloak. Configuracion de consola y variables:
+
+```text
+ui/KEYCLOAK_SETUP.md
+```
+
 Documentacion OpenAPI por servicio:
 
 - `http://localhost:8001/customer-service/docs`

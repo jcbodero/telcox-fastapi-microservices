@@ -1,4 +1,4 @@
-version: '3.8'
+
 
 services:
   # PostgreSQL for audit trail
@@ -22,7 +22,7 @@ services:
 
   # MongoDB for flexible audit storage
   mongo_telcox:
-    image: mongo:6.0-alpine
+    image: mongo:6.0
     container_name: telcox_mongo
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
@@ -34,7 +34,7 @@ services:
       - mongo_data:/data/db
       - ./infra/mongo/init.js:/docker-entrypoint-initdb.d/init.js
     healthcheck:
-      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      test: ["CMD-SHELL", "mongosh --quiet --eval 'db.adminCommand(\"ping\").ok' localhost:27017/test"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -55,95 +55,7 @@ services:
       retries: 5
 
   # Customer Service
-  customer_service:
-    build:
-      context: .
-      dockerfile: services/customer_service/setup/Dockerfile
-    container_name: telcox_customer_service
-    ports:
-      - "8001:8000"
-    environment:
-      SERVICE_PORT: 8000
-      AUDIT_BACKEND: postgres
-      POSTGRES_URL: postgresql://telcox:telcox_secure_password_2026@postgres_telcox:5432/telcox_audit
-      REDIS_URL: redis://redis_telcox:6379/0
-      MONGO_URL: mongodb://admin:telcox_secure_password_2026@mongo_telcox:27017/telcox_audit
-    depends_on:
-      postgres_telcox:
-        condition: service_healthy
-      redis_telcox:
-        condition: service_healthy
-    volumes:
-      - ./services/customer_service:/app
-
-  # Onboarding Service with document and facial verification simulation
-  onboarding_service:
-    build:
-      context: .
-      dockerfile: services/onboarding_service/setup/Dockerfile
-    container_name: telcox_onboarding_service
-    ports:
-      - "8008:8000"
-    environment:
-      SERVICE_PORT: 8000
-      AUDIT_BACKEND: postgres
-      IDENTITY_PROVIDER: keycloak
-      KEYCLOAK_REALM: telcox
-      KYC_PROVIDER: mock-kyc
-      FACE_PROVIDER: mock-face-match
-      POSTGRES_URL: postgresql://telcox:telcox_secure_password_2026@postgres_telcox:5432/telcox_audit
-      REDIS_URL: redis://redis_telcox:6379/0
-      MONGO_URL: mongodb://admin:telcox_secure_password_2026@mongo_telcox:27017/telcox_audit
-    depends_on:
-      postgres_telcox:
-        condition: service_healthy
-      redis_telcox:
-        condition: service_healthy
-    volumes:
-      - ./services/onboarding_service:/app
-
-  # Payment Service
-  payment_service:
-    build:
-      context: .
-      dockerfile: services/payment_service/setup/Dockerfile
-    container_name: telcox_payment_service
-    ports:
-      - "8006:8000"
-    environment:
-      SERVICE_PORT: 8000
-      POSTGRES_URL: postgresql://telcox:telcox_secure_password_2026@postgres_telcox:5432/telcox_audit
-      REDIS_URL: redis://redis_telcox:6379/0
-      MONGO_URL: mongodb://admin:telcox_secure_password_2026@mongo_telcox:27017/telcox_audit
-    depends_on:
-      postgres_telcox:
-        condition: service_healthy
-      redis_telcox:
-        condition: service_healthy
-    volumes:
-      - ./services/payment_service:/app
-
-  # Audit Service
-  audit_service:
-    build:
-      context: .
-      dockerfile: services/audit_service/setup/Dockerfile
-    container_name: telcox_audit_service
-    ports:
-      - "8007:8000"
-    environment:
-      SERVICE_PORT: 8000
-      POSTGRES_URL: postgresql://telcox:telcox_secure_password_2026@postgres_telcox:5432/telcox_audit
-      REDIS_URL: redis://redis_telcox:6379/0
-      MONGO_URL: mongodb://admin:telcox_secure_password_2026@mongo_telcox:27017/telcox_audit
-    depends_on:
-      postgres_telcox:
-        condition: service_healthy
-      redis_telcox:
-        condition: service_healthy
-    volumes:
-      - ./services/audit_service:/app
-
+ 
 volumes:
   postgres_data:
   mongo_data:

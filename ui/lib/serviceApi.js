@@ -20,8 +20,19 @@ const handleResponse = async (res) => {
   return res.json()
 }
 
-export const fetchJson = async (url, options = {}) => {
-  const res = await fetch(url, options)
+const buildHeaders = (token, headers = {}) => {
+  return {
+    ...headers,
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  }
+}
+
+export const fetchJson = async (url, options = {}, token = null) => {
+  const nextOptions = {
+    ...options,
+    headers: buildHeaders(token, options.headers),
+  }
+  const res = await fetch(url, nextOptions)
   return handleResponse(res)
 }
 
@@ -41,24 +52,24 @@ export const apiMap = {
   provisioningOrders: '/provisioning-service/orders',
 }
 
-export const postJson = async (service, path, payload) => {
+export const postJson = async (service, path, payload, token = null) => {
   const response = await fetchJson(buildUrl(service, path), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ data: payload }),
-  })
+  }, token)
   return response
 }
 
-export const loadAllData = async () => {
+export const loadAllData = async (token = null) => {
   return Promise.all([
-    fetchJson(buildUrl('customer', apiMap.customer)),
-    fetchJson(buildUrl('status', apiMap.status)),
-    fetchJson(buildUrl('catalog', apiMap.catalog)),
-    fetchJson(buildUrl('billing', apiMap.billingInvoices)),
-    fetchJson(buildUrl('payment', apiMap.paymentList)),
-    fetchJson(buildUrl('notification', apiMap.notificationList)),
-    fetchJson(buildUrl('audit', apiMap.audit)),
-    fetchJson(buildUrl('provisioning', apiMap.provisioningOrders)),
+    fetchJson(buildUrl('customer', apiMap.customer), {}, token),
+    fetchJson(buildUrl('status', apiMap.status), {}, token),
+    fetchJson(buildUrl('catalog', apiMap.catalog), {}, token),
+    fetchJson(buildUrl('billing', apiMap.billingInvoices), {}, token),
+    fetchJson(buildUrl('payment', apiMap.paymentList), {}, token),
+    fetchJson(buildUrl('notification', apiMap.notificationList), {}, token),
+    fetchJson(buildUrl('audit', apiMap.audit), {}, token),
+    fetchJson(buildUrl('provisioning', apiMap.provisioningOrders), {}, token),
   ])
 }

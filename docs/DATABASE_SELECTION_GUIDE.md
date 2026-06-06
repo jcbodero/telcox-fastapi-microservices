@@ -104,7 +104,7 @@ docker run --name mongo_telcox \
   -e MONGO_INITDB_DATABASE=telcox_audit \
   -v mongo_data:/data/db \
   -p 27017:27017 \
-  -d mongo:6.0-alpine
+  -d mongo:6.0
 ```
 
 #### Conexión desde Python

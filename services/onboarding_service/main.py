@@ -2,7 +2,10 @@ from datetime import datetime, timezone
 from typing import Any
 from uuid import uuid4
 
+import os
+import logging
 from fastapi import FastAPI, HTTPException, status
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -25,6 +28,48 @@ app = FastAPI(
     docs_url="/onboarding-service/docs",
     openapi_url="/onboarding-service/openapi.json",
 )
+
+# Enable CORS for local UI development
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+@app.on_event("startup")
+def on_startup() -> None:
+    port = os.environ.get("PORT", "8002")
+    logging.info(f"Onboarding Service starting on port {port}")
+
+
+@app.post("/onboarding-service/onboarding-cases/verify", response_model=OnboardingCaseResponse, status_code=status.HTTP_201_CREATED, tags=["onboarding-cases"])
+def verify_onboarding(payload: OnboardingCasePayload) -> dict[str, Any]:
+    """Simula una verificación de documento y biometría.
+
+    Regla simple: si el último dígito del `document_id` es par => aprobado, si no => rechazado.
+    """
+    data = payload.data
+    doc = str(data.get("document_id", ""))
+    document_check = "rejected"
+    face_match = "rejected"
+    status_final = "pending"
+    if doc.isdigit() and len(doc) >= 2:
+        last = int(doc[-1])
+        if last % 2 == 0:
+            document_check = "approved"
+            face_match = "approved"
+            status_final = "completed"
+        else:
+            document_check = "rejected"
+            face_match = "rejected"
+            status_final = "rejected"
+
+    case = build_onboarding_case({**data, "document_check": document_check, "face_match": face_match, "status": status_final})
+    onboarding_cases[case["id"]] = case
+    return case
 
 
 def utc_now() -> str:

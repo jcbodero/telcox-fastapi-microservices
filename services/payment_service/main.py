@@ -2,7 +2,10 @@ from datetime import datetime, timezone
 from typing import Any
 from uuid import uuid4
 
+import os
+import logging
 from fastapi import FastAPI, HTTPException, status
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -25,6 +28,41 @@ app = FastAPI(
     docs_url="/payment-service/docs",
     openapi_url="/payment-service/openapi.json",
 )
+
+# Enable CORS for local UI development
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+@app.on_event("startup")
+def on_startup() -> None:
+    port = os.environ.get("PORT", "8003")
+    logging.info(f"Payment Service starting on port {port}")
+
+
+@app.post("/payment-service/process", response_model=PaymentResponse, status_code=status.HTTP_200_OK, tags=["payments"])
+def process_payment(payload: PaymentPayload) -> dict[str, Any]:
+    """Procesa un pago simulado.
+
+    Espera en `payload.data` las claves: `customer_id`, `amount`, `method`, opcional `mode` ("success"|"fail").
+    """
+    data = payload.data
+    mode = data.get("mode", "success")
+    payment = build_payment({
+        "customer_id": data.get("customer_id"),
+        "amount": data.get("amount"),
+        "currency": data.get("currency", "USD"),
+        "method": data.get("method", "card"),
+        "status": "approved" if mode == "success" else "declined",
+        "gateway_reference": f"gw-mock-{str(uuid4())[:8]}",
+    })
+    payments[payment["id"]] = payment
+    return payment
 
 
 def utc_now() -> str:

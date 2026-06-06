@@ -1,8 +1,12 @@
+import logging
+import os
 from datetime import datetime, timezone
 from typing import Any
 from uuid import uuid4
 
+import requests
 from fastapi import FastAPI, HTTPException, status
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -25,6 +29,20 @@ app = FastAPI(
     docs_url="/provisioning-service/docs",
     openapi_url="/provisioning-service/openapi.json",
 )
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+@app.on_event("startup")
+def on_startup() -> None:
+    port = os.environ.get("PORT", "8004")
+    logging.info(f"Provisioning Service starting on port {port}")
 
 
 def utc_now() -> str:
@@ -63,7 +81,25 @@ def list_orders() -> list[dict[str, Any]]:
 @app.post("/provisioning-service/orders", response_model=OrderResponse, status_code=status.HTTP_201_CREATED, tags=["orders"])
 def create_order(payload: OrderPayload) -> dict[str, Any]:
     order = build_order(payload.data)
+    operation = order.get("operation", "activate")
+    order["status"] = "completed" if operation in {"activate", "change_plan", "suspend"} else "pending"
     orders[order["id"]] = order
+    if order["status"] == "completed":
+        try:
+            requests.post(
+                "http://localhost:8008/service-status-service/active-services",
+                json={"data": {
+                    "customer_id": order.get("customer_id"),
+                    "product_id": order.get("product_id"),
+                    "status": "active" if operation == "activate" else order.get("status"),
+                    "data_used_gb": order.get("data_limit_gb", 0),
+                    "data_limit_gb": order.get("data_limit_gb", 20),
+                    "balance": 0,
+                }},
+                timeout=2,
+            )
+        except requests.RequestException:
+            logging.warning("Could not notify service-status-service")
     return order
 
 

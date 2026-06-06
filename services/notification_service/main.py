@@ -1,8 +1,11 @@
+import logging
+import os
 from datetime import datetime, timezone
 from typing import Any
 from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException, status
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -25,6 +28,20 @@ app = FastAPI(
     docs_url="/notification-service/docs",
     openapi_url="/notification-service/openapi.json",
 )
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+@app.on_event("startup")
+def on_startup() -> None:
+    port = os.environ.get("PORT", "8005")
+    logging.info(f"Notification Service starting on port {port}")
 
 
 def utc_now() -> str:
@@ -64,6 +81,19 @@ def list_notifications() -> list[dict[str, Any]]:
 @app.post("/notification-service/notifications", response_model=NotificationResponse, status_code=status.HTTP_201_CREATED, tags=["notifications"])
 def create_notification(payload: NotificationPayload) -> dict[str, Any]:
     notification = build_notification(payload.data)
+    notifications[notification["id"]] = notification
+    return notification
+
+
+@app.post("/notification-service/notifications/send", response_model=NotificationResponse, status_code=status.HTTP_200_OK, tags=["notifications"])
+def send_notification(payload: NotificationPayload) -> dict[str, Any]:
+    data = payload.data
+    mode = data.get("mode", "success")
+    notification = build_notification({
+        **data,
+        "status": "delivered" if mode == "success" else "failed",
+        "attempts": data.get("attempts", 1),
+    })
     notifications[notification["id"]] = notification
     return notification
 

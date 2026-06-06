@@ -1,8 +1,11 @@
+import logging
+import os
 from datetime import datetime, timezone
 from typing import Any
 from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException, status
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -25,6 +28,20 @@ app = FastAPI(
     docs_url="/audit-service/docs",
     openapi_url="/audit-service/openapi.json",
 )
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+@app.on_event("startup")
+def on_startup() -> None:
+    port = os.environ.get("PORT", "8007")
+    logging.info(f"Audit Service starting on port {port}")
 
 
 def utc_now() -> str:

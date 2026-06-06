@@ -1,0 +1,31 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #__next {
+  min-height: 100%;
+}
+
+body {
+  @apply bg-slate-50 text-slate-900 antialiased;
+  background-image: radial-gradient(circle at top, rgba(14,158,239,0.12), transparent 32%), linear-gradient(to bottom, #f8fbff 0%, #eef2ff 100%);
+  background-attachment: fixed;
+}
+
+@layer components {
+  .btn-primary {
+    @apply rounded-3xl bg-telecom-500 px-4 py-3 text-sm font-semibold text-white shadow-telecard hover:bg-telecom-400;
+  }
+
+  .glass-card {
+    @apply rounded-[32px] border border-slate-200/70 bg-white/90 shadow-lg shadow-slate-200/20;
+  }
+
+  .section-title {
+    @apply text-xl font-semibold text-slate-900;
+  }
+
+  .section-subtitle {
+    @apply text-sm text-slate-600;
+  }
+}

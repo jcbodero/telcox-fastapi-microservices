@@ -1,8 +1,11 @@
-from datetime import datetime, timezone
+import logging
+import os
+from datetime import datetime, timedelta, timezone
 from typing import Any
 from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException, status
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -25,6 +28,20 @@ app = FastAPI(
     docs_url="/billing-service/docs",
     openapi_url="/billing-service/openapi.json",
 )
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+@app.on_event("startup")
+def on_startup() -> None:
+    port = os.environ.get("PORT", "8006")
+    logging.info(f"Billing Service starting on port {port}")
 
 
 def utc_now() -> str:
@@ -64,6 +81,20 @@ def list_invoices() -> list[dict[str, Any]]:
 @app.post("/billing-service/invoices", response_model=InvoiceResponse, status_code=status.HTTP_201_CREATED, tags=["invoices"])
 def create_invoice(payload: InvoicePayload) -> dict[str, Any]:
     invoice = build_invoice(payload.data)
+    invoices[invoice["id"]] = invoice
+    return invoice
+
+
+@app.post("/billing-service/invoices/generate", response_model=InvoiceResponse, status_code=status.HTTP_200_OK, tags=["invoices"])
+def generate_invoice(payload: InvoicePayload) -> dict[str, Any]:
+    data = payload.data
+    due_date = (datetime.now(timezone.utc) + timedelta(days=30)).date().isoformat()
+    invoice = build_invoice({
+        **data,
+        "status": "issued",
+        "due_date": data.get("due_date", due_date),
+        "sri_status": data.get("sri_status", "pending"),
+    })
     invoices[invoice["id"]] = invoice
     return invoice
 

@@ -41,6 +41,7 @@ class IdentityVerificationPayload(BaseModel):
 
 class AuthEnrollmentPayload(BaseModel):
     auth_methods: list[str] = Field(default_factory=lambda: ["password", "passkey"])
+    case_data: dict[str, Any] | None = None
 
 
 class ConsentPayload(BaseModel):
@@ -539,7 +540,10 @@ def verify_onboarding(payload: IdentityVerificationPayload) -> dict[str, Any]:
 @audit_action("UPDATE", "AUTH_METHODS")
 def enroll_auth_methods(case_id: str, payload: AuthEnrollmentPayload) -> dict[str, Any]:
     if case_id not in onboarding_cases:
-        raise HTTPException(status_code=404, detail="Onboarding case not found")
+        case_data = payload.case_data or {}
+        if case_data.get("id") != case_id or case_data.get("status") not in ("completed", "manual_review"):
+            raise HTTPException(status_code=404, detail="Onboarding case not found")
+        onboarding_cases[case_id] = build_onboarding_case(case_data)
 
     case = onboarding_cases[case_id]
     if case.get("status") not in ("completed", "manual_review"):

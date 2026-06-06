@@ -6,6 +6,9 @@ Este documento consolida lo que ya fue aplicado en el proyecto TelcoX y como se 
 
 La solucion esta basada en microservicios FastAPI, frontend web en Next.js, una app movil en Expo/React Native, autenticacion OIDC con Keycloak, auditoria centralizada, observabilidad con Loki/Grafana/Promtail y despliegue Kubernetes con Helm.
 
+Los diagramas editables de arquitectura y datos estan disponibles en `docs/TELCOX_ARCHITECTURE.drawio`.
+La version HTML navegable con Mermaid, Draw.io integrado y descarga a PDF esta disponible en `docs/ARCHITECTURE_ONPREM_AWS.html`.
+
 ## Lo Aplicado En El Proyecto
 
 ### Frontend Web
@@ -59,6 +62,175 @@ La solucion esta basada en microservicios FastAPI, frontend web en Next.js, una 
 - Alternativa de cache distribuida con Redis.
 - Separacion entre auditoria transaccional y observabilidad.
 
+### Diagramas De Base De Datos De Microservicios
+
+Los microservicios implementados manejan un modelo logico por servicio. En el entorno actual de demo/laboratorio, la mayoria de repositorios usan diccionarios en memoria; la infraestructura Kubernetes ya incluye PostgreSQL y MongoDB, y la auditoria puede persistir en PostgreSQL cuando `AUDIT_BACKEND=postgres` esta habilitado.
+
+El diagrama editable correspondiente esta incluido como pagina **Datos MS** en `docs/TELCOX_ARCHITECTURE.drawio`.
+
+```mermaid
+erDiagram
+  CUSTOMERS {
+    string id PK
+    string document_id
+    string full_name
+    string email
+    string phone
+    string status
+    string segment
+    string identity_status
+    string identity_provider
+    string created_at
+    string updated_at
+  }
+
+  PRODUCTS {
+    string id PK
+    string name
+    string type
+    float monthly_price
+    string currency
+    json features
+    string created_at
+    string updated_at
+  }
+
+  ACTIVE_SERVICES {
+    string id PK
+    string customer_id FK
+    string product_id FK
+    string status
+    float data_used_gb
+    float data_limit_gb
+    float balance
+    string created_at
+    string updated_at
+  }
+
+  PROVISIONING_ORDERS {
+    string id PK
+    string customer_id FK
+    string product_id FK
+    string operation
+    string status
+    string channel
+    string network_reference_id
+    string network_node
+    string external_system
+    string created_at
+    string updated_at
+  }
+
+  INVOICES {
+    string id PK
+    string customer_id FK
+    float amount
+    string currency
+    string status
+    string due_date
+    string sri_status
+    string sri_access_key
+    string external_system
+    string created_at
+    string updated_at
+  }
+
+  PAYMENTS {
+    string id PK
+    string customer_id FK
+    string invoice_id FK
+    float amount
+    string currency
+    string method
+    string status
+    string gateway_reference
+    string external_system
+    string created_at
+    string updated_at
+  }
+
+  NOTIFICATIONS {
+    string id PK
+    string customer_id FK
+    string channel
+    string event_type
+    string message
+    string status
+    int attempts
+    string gateway_message_id
+    string external_system
+    string created_at
+    string updated_at
+  }
+
+  ONBOARDING_CASES {
+    string id PK
+    string document_id
+    string full_name
+    string email
+    string phone
+    string document_type
+    boolean consent_accepted
+    string document_check
+    string face_match
+    string liveness_check
+    string risk_level
+    string status
+    string identity_provider
+    string kyc_verification_id
+    string created_at
+    string updated_at
+  }
+
+  CONSENTS {
+    string id PK
+    string user_id FK
+    boolean accepted
+    string consent_version
+    json consent_scope
+    string accepted_at
+    string source
+  }
+
+  AUDIT_EVENTS {
+    string id PK
+    string service
+    string action
+    string resource_type
+    string resource_id
+    string status
+    json payload_in
+    json payload_out
+    string timestamp
+    float duration_ms
+    string error_message
+    json metadata
+  }
+
+  CUSTOMERS ||--o{ ACTIVE_SERVICES : customer_id
+  PRODUCTS ||--o{ ACTIVE_SERVICES : product_id
+  CUSTOMERS ||--o{ PROVISIONING_ORDERS : customer_id
+  PRODUCTS ||--o{ PROVISIONING_ORDERS : product_id
+  CUSTOMERS ||--o{ INVOICES : customer_id
+  INVOICES ||--o{ PAYMENTS : invoice_id
+  CUSTOMERS ||--o{ PAYMENTS : customer_id
+  CUSTOMERS ||--o{ NOTIFICATIONS : customer_id
+  CUSTOMERS ||--o{ CONSENTS : user_id
+  ONBOARDING_CASES ||--o{ AUDIT_EVENTS : resource_id
+```
+
+Resumen por microservicio:
+
+- `customer_service`: entidad logica `customers`, cache TTL y eventos de auditoria locales.
+- `catalog_service`: entidad logica `products` para planes, paquetes y addons.
+- `service_status_service`: entidad logica `active_services`, relacionada con cliente y producto.
+- `provisioning_service`: entidad logica `provisioning_orders`, relacionada con cliente, producto y OSS externo.
+- `billing_service`: entidad logica `invoices`, relacionada con cliente y SRI externo.
+- `payment_service`: entidad logica `payments`, relacionada con cliente, factura y gateway de pagos.
+- `notification_service`: entidad logica `notifications`, relacionada con cliente y gateway de notificaciones.
+- `onboarding_service`: entidad logica `onboarding_cases` y consentimientos explicitos de privacidad, documentos y biometria.
+- `audit_service`: entidad logica `audit_events`; ademas `customer_service` y `onboarding_service` pueden escribir `audit_events` en PostgreSQL si se configura el backend persistente.
+
 ### Infraestructura
 
 - Helm charts por microservicio.
@@ -71,6 +243,32 @@ La solucion esta basada en microservicios FastAPI, frontend web en Next.js, una 
 - Contenedores no-root para los servicios Python.
 - `uvicorn` limitado a un solo worker por contenedor.
 - Requests y limits ajustados para poder convivir en una maquina pequena.
+
+### Portal De Manuales
+
+La UI incorpora una seccion de manuales en `/manuales`, generada desde los archivos de `docs/` y servida como contenido estatico dentro de la misma imagen del frontend.
+
+El despliegue de manuales ya queda integrado al pipeline `ui-ci.yml`:
+
+- El workflow se dispara tambien cuando cambian archivos en `docs/**` o scripts de generacion de manuales.
+- El paso `Prepare manuals static files` ejecuta `scripts/prepare_ui_manuals.py`.
+- El script regenera `docs/ARCHITECTURE_ONPREM_AWS.html` y copia los manuales a `ui/public/manuales`.
+- Next.js incluye esos archivos estaticos en la imagen Docker de la UI.
+- Kubernetes sirve los manuales desde la misma aplicacion en `/manuales`.
+
+La seguridad de esta seccion no usa Keycloak. Se aplica Basic Auth en Traefik mediante un `Middleware` dedicado y un Ingress especifico para `/manuales`, con prioridad mayor que el Ingress general de la UI.
+
+El secreto requerido se llama `telcox-manuals-basic-auth` y se crea automaticamente desde GitHub Actions usando el secret `MANUALS_BASIC_AUTH_USERS`, cuyo valor debe ser una linea `htpasswd`, por ejemplo:
+
+```bash
+htpasswd -nbB usuario 'contrasena-segura'
+```
+
+Con este esquema:
+
+- `/` mantiene el flujo normal de la UI y Keycloak.
+- `/manuales` usa usuario y contrasena via Basic Auth.
+- Los archivos HTML, Markdown, Draw.io, Word, imagenes y otros manuales quedan servidos desde `/manuales`.
 
 ## Arquitectura On-Premise
 
@@ -171,17 +369,54 @@ flowchart LR
 
 ## Cumplimiento Normativo
 
-Para telecom y datos sensibles, esta solucion debe considerar:
+La solucion ya incorpora controles base de cumplimiento normativo para telecom y datos sensibles. Estos controles no sustituyen una certificacion formal, pero dejan la arquitectura preparada para operar bajo marcos regulatorios locales, regionales y sectoriales.
 
-- Ley local de proteccion de datos del pais de operacion.
-- GDPR si hay tratamiento de datos de usuarios de la Union Europea.
-- PCI DSS si hay pagos con tarjeta.
-- Normativa especifica de seguridad de comunicaciones aplicable al sector telecom.
-- SSL/TLS en transito.
-- Cifrado en reposo.
-- Retencion y eliminacion segura de datos.
-- Consentimiento explicito para biometria y documentos.
-- Trazabilidad de acciones y accesos privilegiados.
+La solucion ya tiene:
+
+- Consideracion de la ley local de proteccion de datos del pais de operacion como marco principal de tratamiento de datos personales.
+- Preparacion para GDPR cuando exista tratamiento de datos de usuarios de la Union Europea, incluyendo minimizacion, consentimiento, trazabilidad y eliminacion de datos.
+- Separacion del `payment_service` y simulacion de pasarela externa, dejando el alcance preparado para PCI DSS si se procesan pagos con tarjeta.
+- Consideracion de normativa especifica de seguridad de comunicaciones aplicable al sector telecom.
+- SSL/TLS en transito mediante certificados aplicados en Ingress, gateway y frontend.
+- WAF implementado con Cloudflare para proteger el dominio publico ante trafico malicioso, ataques comunes de capa web y reglas de filtrado perimetral.
+- Cifrado en reposo para proteger informacion sensible almacenada en base de datos.
+- Politicas de clasificacion, retencion y eliminacion segura de datos desde el diseno de seguridad.
+- Consentimiento explicito para procesos de onboarding que involucren biometria, documentos o verificacion de identidad.
+- Trazabilidad de acciones de usuario y accesos privilegiados mediante `audit_service`, registros de eventos y logs centralizados.
+- Observabilidad operativa con Grafana, Loki y Promtail para facilitar investigacion, evidencia tecnica y respuesta ante incidentes.
+
+## Flujo De Despliegue CI/CD DevOps
+
+El proyecto ya tiene implementado un flujo DevOps CI/CD con GitHub Actions, GitHub Container Registry, Docker, Helm y Kubernetes.
+
+Flujo aplicado:
+
+- Los cambios en `main` o la ejecucion manual con `workflow_dispatch` disparan los pipelines.
+- Los workflows detectan cambios por ruta para evitar despliegues innecesarios.
+- Los servicios Python se validan con compilacion previa mediante `python3 -m compileall`.
+- Las imagenes Docker se construyen con tags por `GITHUB_SHA` y `latest`.
+- Las imagenes se publican en GitHub Container Registry (`ghcr.io`).
+- El runner self-hosted valida acceso al cluster Kubernetes.
+- Los despliegues se realizan con `helm upgrade --install`.
+- Kubernetes verifica el rollout de cada deployment antes de cerrar el pipeline.
+- Si ocurre una falla, el pipeline muestra diagnosticos con `kubectl get`, `kubectl describe` y `kubectl logs`.
+
+Pipelines implementados:
+
+- `microservices-ci.yml`: construye, publica y despliega los microservicios FastAPI.
+- `ui-ci.yml`: construye la UI Next.js, publica la imagen y despliega el frontend.
+- `audit-service-ci.yml`: permite despliegue manual del servicio de auditoria.
+- `external-services-ci.yml`: construye, publica y despliega los servicios externos simulados en el namespace `external-sim`.
+
+Este flujo puede evolucionar a DevSecOps incorporando controles de seguridad automatizados dentro del pipeline, por ejemplo:
+
+- Analisis SAST de codigo.
+- Escaneo de dependencias y SBOM.
+- Escaneo de imagenes Docker antes de publicarlas.
+- Validacion de secretos expuestos.
+- Analisis de IaC y manifiestos Helm/Kubernetes.
+- Firmado de imagenes y politicas de admision en Kubernetes.
+- Gates de cumplimiento para impedir despliegues con vulnerabilidades criticas.
 
 ## Recomendacion De Diseno
 

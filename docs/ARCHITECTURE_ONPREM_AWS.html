@@ -1,0 +1,692 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TelcoX - Arquitectura Aplicada</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script src="https://viewer.diagrams.net/js/viewer-static.min.js"></script>
+  <style>
+    :root {
+      --ink: #0b2545;
+      --blue: #2e74b5;
+      --soft-blue: #e8eef5;
+      --line: #d7dee8;
+      --muted: #5f6b7a;
+      --paper: #ffffff;
+      --bg: #f4f7fb;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: #182230;
+      background: var(--bg);
+      font-family: Arial, Helvetica, sans-serif;
+      line-height: 1.55;
+    }
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 12px 24px;
+      background: var(--ink);
+      color: #fff;
+      box-shadow: 0 2px 12px rgba(15, 23, 42, .18);
+    }
+    .brand { font-weight: 700; letter-spacing: .2px; }
+    .actions { display: flex; gap: 10px; align-items: center; }
+    button, .link-button {
+      border: 1px solid rgba(255,255,255,.35);
+      background: #fff;
+      color: var(--ink);
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      font-size: 13px;
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: 290px minmax(0, 1fr);
+      gap: 24px;
+      width: min(1440px, calc(100% - 40px));
+      margin: 24px auto 56px;
+    }
+    aside {
+      position: sticky;
+      top: 72px;
+      align-self: start;
+      max-height: calc(100vh - 96px);
+      overflow: auto;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 18px;
+    }
+    aside h2 { margin: 0 0 12px; font-size: 15px; color: var(--ink); }
+    aside a {
+      display: block;
+      color: #26384d;
+      text-decoration: none;
+      border-left: 3px solid transparent;
+      padding: 5px 6px;
+      font-size: 13px;
+    }
+    aside a:hover { color: var(--blue); border-left-color: var(--blue); background: #f7faff; }
+    .toc-l1 { font-weight: 700; }
+    .toc-l2 { margin-left: 8px; }
+    .toc-l3 { margin-left: 18px; color: var(--muted); }
+    main {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 38px 48px;
+      box-shadow: 0 8px 28px rgba(15, 23, 42, .08);
+    }
+    .cover {
+      border-bottom: 4px solid var(--blue);
+      padding-bottom: 18px;
+      margin-bottom: 28px;
+    }
+    .cover h1 {
+      margin: 0 0 8px;
+      color: var(--ink);
+      font-size: clamp(30px, 4vw, 44px);
+      line-height: 1.08;
+    }
+    .cover p { color: var(--muted); margin: 0; font-size: 15px; }
+    h1, h2, h3 { color: var(--ink); line-height: 1.2; }
+    h1 { margin-top: 34px; font-size: 30px; }
+    h2 { margin-top: 30px; font-size: 24px; border-bottom: 1px solid var(--line); padding-bottom: 7px; }
+    h3 { margin-top: 24px; font-size: 18px; color: #1f4d78; }
+    p { margin: 0 0 12px; }
+    ul { margin: 0 0 16px 22px; padding: 0; }
+    li { margin: 5px 0; }
+    code {
+      background: #eef3f8;
+      border: 1px solid #d9e3ef;
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-family: Consolas, Monaco, monospace;
+      font-size: .94em;
+    }
+    pre {
+      overflow: auto;
+      background: #0f172a;
+      color: #e5e7eb;
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .diagram-card, .drawio-card {
+      break-inside: avoid;
+      margin: 20px 0 28px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      padding: 16px;
+    }
+    .diagram-card figcaption {
+      font-weight: 700;
+      color: var(--ink);
+      margin-bottom: 10px;
+    }
+    .mermaid {
+      display: flex;
+      justify-content: center;
+      width: 100%;
+      overflow: auto;
+      padding: 8px;
+    }
+    .drawio-section {
+      margin-top: 34px;
+      padding-top: 20px;
+      border-top: 3px solid var(--soft-blue);
+    }
+    .drawio-card h3 { margin-top: 0; }
+    .mxgraph {
+      width: 100%;
+      min-height: 560px;
+      border: 1px solid #e3e9f2;
+      border-radius: 6px;
+      background: #fff;
+    }
+    .note {
+      background: #fff8e8;
+      border: 1px solid #e0b64c;
+      border-radius: 8px;
+      padding: 12px 14px;
+      color: #4d3b00;
+      margin: 18px 0;
+    }
+    footer {
+      width: min(1440px, calc(100% - 40px));
+      margin: 0 auto 36px;
+      color: var(--muted);
+      font-size: 12px;
+      text-align: center;
+    }
+    @media (max-width: 980px) {
+      .layout { grid-template-columns: 1fr; }
+      aside { position: relative; top: 0; max-height: none; }
+      main { padding: 28px 22px; }
+    }
+    @page { size: A4; margin: 14mm; }
+    @media print {
+      body { background: #fff; }
+      .topbar, aside, footer { display: none !important; }
+      .layout { display: block; width: 100%; margin: 0; }
+      main { border: 0; box-shadow: none; padding: 0; }
+      h1, h2, h3, .diagram-card, .drawio-card { break-inside: avoid; }
+      .mxgraph { min-height: 420px; }
+      a { color: inherit; text-decoration: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand">TelcoX - Documentacion de Arquitectura</div>
+    <div class="actions">
+      <a class="link-button" href="TELCOX_ARCHITECTURE.drawio" target="_blank">Abrir Draw.io</a>
+      <button type="button" onclick="window.print()">Descargar PDF</button>
+    </div>
+  </div>
+  <div class="layout">
+    <aside>
+      <h2>Contenido</h2>
+      <a class="toc-l1" href="#telcox-arquitectura-aplicada-on-premise-y-aws">TelcoX - Arquitectura Aplicada, On-Premise y AWS</a>
+<a class="toc-l2" href="#resumen">Resumen</a>
+<a class="toc-l2" href="#lo-aplicado-en-el-proyecto">Lo Aplicado En El Proyecto</a>
+<a class="toc-l3" href="#frontend-web">Frontend Web</a>
+<a class="toc-l3" href="#frontend-movil">Frontend Movil</a>
+<a class="toc-l3" href="#microservicios">Microservicios</a>
+<a class="toc-l3" href="#seguridad-y-autenticacion">Seguridad Y Autenticacion</a>
+<a class="toc-l3" href="#auditoria">Auditoria</a>
+<a class="toc-l3" href="#persistencia-y-consultas-frecuentes">Persistencia Y Consultas Frecuentes</a>
+<a class="toc-l3" href="#diagramas-de-base-de-datos-de-microservicios">Diagramas De Base De Datos De Microservicios</a>
+<a class="toc-l3" href="#infraestructura">Infraestructura</a>
+<a class="toc-l3" href="#portal-de-manuales">Portal De Manuales</a>
+<a class="toc-l2" href="#arquitectura-on-premise">Arquitectura On-Premise</a>
+<a class="toc-l3" href="#diagrama-general">Diagrama General</a>
+<a class="toc-l3" href="#componentes">Componentes</a>
+<a class="toc-l3" href="#caracteristicas-operativas">Caracteristicas Operativas</a>
+<a class="toc-l3" href="#consideraciones-de-on-premise">Consideraciones De On-Premise</a>
+<a class="toc-l2" href="#arquitectura-objetivo-en-aws">Arquitectura Objetivo En AWS</a>
+<a class="toc-l3" href="#propuesta-base">Propuesta Base</a>
+<a class="toc-l3" href="#diagrama-aws">Diagrama AWS</a>
+<a class="toc-l3" href="#alta-disponibilidad-en-aws">Alta Disponibilidad En AWS</a>
+<a class="toc-l3" href="#recuperacion-ante-desastres">Recuperacion Ante Desastres</a>
+<a class="toc-l2" href="#cumplimiento-normativo">Cumplimiento Normativo</a>
+<a class="toc-l2" href="#flujo-de-despliegue-ci-cd-devops">Flujo De Despliegue CI/CD DevOps</a>
+<a class="toc-l2" href="#recomendacion-de-diseno">Recomendacion De Diseno</a>
+<a class="toc-l2" href="#estado-de-entrega">Estado De Entrega</a>
+<a class="toc-l2" href="#conclusion">Conclusion</a>
+<a class="toc-l2" href="#glosario-de-siglas">Glosario De Siglas</a>
+      <a class="toc-l2" href="#diagramas-drawio-integrados">Diagramas Draw.io integrados</a>
+    </aside>
+    <main>
+      <section class="cover">
+        <h1>TelcoX - Arquitectura Aplicada</h1>
+        <p>Vista navegable generada desde <code>docs/ARCHITECTURE_ONPREM_AWS.md</code>. Incluye Mermaid renderizado, Draw.io integrado y exportacion a PDF desde el navegador.</p>
+      </section>
+      <div class="note">
+        Para descargar como PDF usa el boton <strong>Descargar PDF</strong> y selecciona "Guardar como PDF" en el dialogo de impresion del navegador.
+      </div>
+      <h1 id="telcox-arquitectura-aplicada-on-premise-y-aws">TelcoX - Arquitectura Aplicada, On-Premise y AWS</h1>
+<h2 id="resumen">Resumen</h2>
+<p>Este documento consolida lo que ya fue aplicado en el proyecto TelcoX y como se organiza la arquitectura actual en una maquina virtual on-premise, junto con una propuesta equivalente en AWS.</p>
+<p>La solucion esta basada en microservicios FastAPI, frontend web en Next.js, una app movil en Expo/React Native, autenticacion OIDC con Keycloak, auditoria centralizada, observabilidad con Loki/Grafana/Promtail y despliegue Kubernetes con Helm.</p>
+<p>Los diagramas editables de arquitectura y datos estan disponibles en <code>docs/TELCOX_ARCHITECTURE.drawio</code>. La version HTML navegable con Mermaid, Draw.io integrado y descarga a PDF esta disponible en <code>docs/ARCHITECTURE_ONPREM_AWS.html</code>.</p>
+<h2 id="lo-aplicado-en-el-proyecto">Lo Aplicado En El Proyecto</h2>
+<h3 id="frontend-web">Frontend Web</h3>
+<ul>
+<li>Login OIDC con Keycloak usando Authorization Code Flow con PKCE.</li>
+<li>Bloqueo del dashboard hasta completar onboarding.</li>
+<li><code>OnboardingGate</code> como barrera de entrada antes del panel principal.</li>
+<li>Flujo de onboarding con verificacion de identidad y habilitacion de metodos de acceso.</li>
+</ul>
+<h3 id="frontend-movil">Frontend Movil</h3>
+<ul>
+<li>App Expo/React Native en <code>mobile/</code>.</li>
+<li>Pantalla de login conectada al mismo flujo OIDC.</li>
+<li>Pantalla principal de onboarding con verificacion de identidad y habilitacion de acceso.</li>
+<li>React Native se eligio porque permite reutilizar logica compartida de autenticacion, validacion, contratos de API y flujo de onboarding entre web y movil, sin compartir componentes visuales. Eso reduce duplicacion y mantiene independencia de UI por plataforma.</li>
+</ul>
+<h3 id="microservicios">Microservicios</h3>
+<ul>
+<li><code>customer_service</code></li>
+<li><code>catalog_service</code></li>
+<li><code>service_status_service</code></li>
+<li><code>provisioning_service</code></li>
+<li><code>billing_service</code></li>
+<li><code>payment_service</code></li>
+<li><code>notification_service</code></li>
+<li><code>onboarding_service</code></li>
+<li><code>audit_service</code></li>
+<li>servicios externos simulados para KYC, OSS, pagos y notificaciones</li>
+</ul>
+<h3 id="seguridad-y-autenticacion">Seguridad Y Autenticacion</h3>
+<ul>
+<li>Keycloak como proveedor de identidad.</li>
+<li>PKCE para web y movil.</li>
+<li>Tokens de vida corta con refresco.</li>
+<li>Bloqueo de acceso al portal si el onboarding no esta verificado.</li>
+<li>Certificados SSL/TLS aplicados en las comunicaciones expuestas por Ingress, gateway y frontend.</li>
+<li>Cifrado en base de datos para proteger informacion sensible en reposo.</li>
+<li>Politica de seguridad de datos aplicable desde el inicio del sistema, incluyendo clasificacion, retencion, consentimiento y minimizacion de datos.</li>
+</ul>
+<h3 id="auditoria">Auditoria</h3>
+<ul>
+<li>Registro de acciones por usuario en <code>customer_service</code> y <code>onboarding_service</code>.</li>
+<li>Servicio dedicado <code>audit_service</code>.</li>
+<li>Persistencia de auditoria en memoria para desarrollo y opcion de PostgreSQL para escenarios persistentes.</li>
+<li>Preparacion para observabilidad de eventos con logs estructurados.</li>
+</ul>
+<h3 id="persistencia-y-consultas-frecuentes">Persistencia Y Consultas Frecuentes</h3>
+<ul>
+<li>Propuesta de patron <code>Cache-Aside</code> para lecturas frecuentes.</li>
+<li>Patron <code>Repository</code> para desacoplar acceso a datos.</li>
+<li>Alternativa de cache distribuida con Redis.</li>
+<li>Separacion entre auditoria transaccional y observabilidad.</li>
+</ul>
+<h3 id="diagramas-de-base-de-datos-de-microservicios">Diagramas De Base De Datos De Microservicios</h3>
+<p>Los microservicios implementados manejan un modelo logico por servicio. En el entorno actual de demo/laboratorio, la mayoria de repositorios usan diccionarios en memoria; la infraestructura Kubernetes ya incluye PostgreSQL y MongoDB, y la auditoria puede persistir en PostgreSQL cuando <code>AUDIT_BACKEND=postgres</code> esta habilitado.</p>
+<p>El diagrama editable correspondiente esta incluido como pagina <strong>Datos MS</strong> en <code>docs/TELCOX_ARCHITECTURE.drawio</code>.</p>
+<figure class="diagram-card"><figcaption>Diagrama Mermaid renderizado</figcaption><div class="mermaid">erDiagram
+  CUSTOMERS {
+    string id PK
+    string document_id
+    string full_name
+    string email
+    string phone
+    string status
+    string segment
+    string identity_status
+    string identity_provider
+    string created_at
+    string updated_at
+  }
+
+  PRODUCTS {
+    string id PK
+    string name
+    string type
+    float monthly_price
+    string currency
+    json features
+    string created_at
+    string updated_at
+  }
+
+  ACTIVE_SERVICES {
+    string id PK
+    string customer_id FK
+    string product_id FK
+    string status
+    float data_used_gb
+    float data_limit_gb
+    float balance
+    string created_at
+    string updated_at
+  }
+
+  PROVISIONING_ORDERS {
+    string id PK
+    string customer_id FK
+    string product_id FK
+    string operation
+    string status
+    string channel
+    string network_reference_id
+    string network_node
+    string external_system
+    string created_at
+    string updated_at
+  }
+
+  INVOICES {
+    string id PK
+    string customer_id FK
+    float amount
+    string currency
+    string status
+    string due_date
+    string sri_status
+    string sri_access_key
+    string external_system
+    string created_at
+    string updated_at
+  }
+
+  PAYMENTS {
+    string id PK
+    string customer_id FK
+    string invoice_id FK
+    float amount
+    string currency
+    string method
+    string status
+    string gateway_reference
+    string external_system
+    string created_at
+    string updated_at
+  }
+
+  NOTIFICATIONS {
+    string id PK
+    string customer_id FK
+    string channel
+    string event_type
+    string message
+    string status
+    int attempts
+    string gateway_message_id
+    string external_system
+    string created_at
+    string updated_at
+  }
+
+  ONBOARDING_CASES {
+    string id PK
+    string document_id
+    string full_name
+    string email
+    string phone
+    string document_type
+    boolean consent_accepted
+    string document_check
+    string face_match
+    string liveness_check
+    string risk_level
+    string status
+    string identity_provider
+    string kyc_verification_id
+    string created_at
+    string updated_at
+  }
+
+  CONSENTS {
+    string id PK
+    string user_id FK
+    boolean accepted
+    string consent_version
+    json consent_scope
+    string accepted_at
+    string source
+  }
+
+  AUDIT_EVENTS {
+    string id PK
+    string service
+    string action
+    string resource_type
+    string resource_id
+    string status
+    json payload_in
+    json payload_out
+    string timestamp
+    float duration_ms
+    string error_message
+    json metadata
+  }
+
+  CUSTOMERS ||--o{ ACTIVE_SERVICES : customer_id
+  PRODUCTS ||--o{ ACTIVE_SERVICES : product_id
+  CUSTOMERS ||--o{ PROVISIONING_ORDERS : customer_id
+  PRODUCTS ||--o{ PROVISIONING_ORDERS : product_id
+  CUSTOMERS ||--o{ INVOICES : customer_id
+  INVOICES ||--o{ PAYMENTS : invoice_id
+  CUSTOMERS ||--o{ PAYMENTS : customer_id
+  CUSTOMERS ||--o{ NOTIFICATIONS : customer_id
+  CUSTOMERS ||--o{ CONSENTS : user_id
+  ONBOARDING_CASES ||--o{ AUDIT_EVENTS : resource_id</div></figure>
+<p>Resumen por microservicio:</p>
+<ul>
+<li><code>customer_service</code>: entidad logica <code>customers</code>, cache TTL y eventos de auditoria locales.</li>
+<li><code>catalog_service</code>: entidad logica <code>products</code> para planes, paquetes y addons.</li>
+<li><code>service_status_service</code>: entidad logica <code>active_services</code>, relacionada con cliente y producto.</li>
+<li><code>provisioning_service</code>: entidad logica <code>provisioning_orders</code>, relacionada con cliente, producto y OSS externo.</li>
+<li><code>billing_service</code>: entidad logica <code>invoices</code>, relacionada con cliente y SRI externo.</li>
+<li><code>payment_service</code>: entidad logica <code>payments</code>, relacionada con cliente, factura y gateway de pagos.</li>
+<li><code>notification_service</code>: entidad logica <code>notifications</code>, relacionada con cliente y gateway de notificaciones.</li>
+<li><code>onboarding_service</code>: entidad logica <code>onboarding_cases</code> y consentimientos explicitos de privacidad, documentos y biometria.</li>
+<li><code>audit_service</code>: entidad logica <code>audit_events</code>; ademas <code>customer_service</code> y <code>onboarding_service</code> pueden escribir <code>audit_events</code> en PostgreSQL si se configura el backend persistente.</li>
+</ul>
+<h3 id="infraestructura">Infraestructura</h3>
+<ul>
+<li>Helm charts por microservicio.</li>
+<li>Helm charts propios para PostgreSQL y MongoDB en Kubernetes.</li>
+<li>Helm para observabilidad con Grafana, Loki y Promtail.</li>
+<li>Helm para Keycloak.</li>
+<li>WAF de Cloudflare aplicado al dominio publico del sistema.</li>
+<li>Despliegues CI/CD con GitHub Actions para microservicios, UI y observabilidad.</li>
+<li>Dockerfiles mas livianos con imagenes <code>slim</code> y <code>alpine</code> donde aplica.</li>
+<li>Contenedores no-root para los servicios Python.</li>
+<li><code>uvicorn</code> limitado a un solo worker por contenedor.</li>
+<li>Requests y limits ajustados para poder convivir en una maquina pequena.</li>
+</ul>
+<h3 id="portal-de-manuales">Portal De Manuales</h3>
+<p>La UI incorpora una seccion de manuales en <code>/manuales</code>, generada desde los archivos de <code>docs/</code> y servida como contenido estatico dentro de la misma imagen del frontend.</p>
+<p>El despliegue de manuales ya queda integrado al pipeline <code>ui-ci.yml</code>:</p>
+<ul>
+<li>El workflow se dispara tambien cuando cambian archivos en <code>docs/**</code> o scripts de generacion de manuales.</li>
+<li>El paso <code>Prepare manuals static files</code> ejecuta <code>scripts/prepare_ui_manuals.py</code>.</li>
+<li>El script regenera <code>docs/ARCHITECTURE_ONPREM_AWS.html</code> y copia los manuales a <code>ui/public/manuales</code>.</li>
+<li>Next.js incluye esos archivos estaticos en la imagen Docker de la UI.</li>
+<li>Kubernetes sirve los manuales desde la misma aplicacion en <code>/manuales</code>.</li>
+</ul>
+<p>La seguridad de esta seccion no usa Keycloak. Se aplica Basic Auth en Traefik mediante un <code>Middleware</code> dedicado y un Ingress especifico para <code>/manuales</code>, con prioridad mayor que el Ingress general de la UI.</p>
+<p>El secreto requerido se llama <code>telcox-manuals-basic-auth</code> y se crea automaticamente desde GitHub Actions usando el secret <code>MANUALS_BASIC_AUTH_USERS</code>, cuyo valor debe ser una linea <code>htpasswd</code>, por ejemplo:</p>
+<pre><code>htpasswd -nbB usuario &#x27;contrasena-segura&#x27;</code></pre>
+<p>Con este esquema:</p>
+<ul>
+<li><code>/</code> mantiene el flujo normal de la UI y Keycloak.</li>
+<li><code>/manuales</code> usa usuario y contrasena via Basic Auth.</li>
+<li>Los archivos HTML, Markdown, Draw.io, Word, imagenes y otros manuales quedan servidos desde <code>/manuales</code>.</li>
+</ul>
+<h2 id="arquitectura-on-premise">Arquitectura On-Premise</h2>
+<p>La arquitectura on-premise actual esta pensada para correr sobre una maquina virtual o un cluster Kubernetes pequeno, con exposicion publica via Traefik o Cloudflare Tunnel si existe CGNAT.</p>
+<h3 id="diagrama-general">Diagrama General</h3>
+<figure class="diagram-card"><figcaption>Diagrama Mermaid renderizado</figcaption><div class="mermaid">flowchart LR
+  U[Usuario web o movil] --&gt; K[Keycloak]
+  U --&gt; M[App movil React Native]
+  K --&gt; G[API Gateway / Traefik]
+  M --&gt; G
+  G --&gt; S[Microservicios FastAPI]
+  S --&gt; A[Audit Service]
+  S --&gt; P[(PostgreSQL)]
+  S --&gt; N[(MongoDB)]
+  S --&gt; L[Loki]
+  L --&gt; F[Grafana]</div></figure>
+<h3 id="componentes">Componentes</h3>
+<ul>
+<li><strong>UI web</strong>: Next.js</li>
+<li><strong>UI movil</strong>: Expo / React Native</li>
+<li><strong>Gateway de entrada</strong>: Traefik</li>
+<li><strong>Identidad</strong>: Keycloak</li>
+<li><strong>Servicios de negocio</strong>: microservicios FastAPI</li>
+<li><strong>Auditoria</strong>: servicio dedicado + logs centralizados</li>
+<li><strong>Bases de datos</strong>: PostgreSQL y MongoDB en Kubernetes</li>
+<li><strong>Observabilidad</strong>: Grafana + Loki + Promtail</li>
+<li><strong>Exposicion externa alternativa</strong>: Cloudflare Tunnel</li>
+<li><strong>Servicios externos simulados</strong>: namespace independiente <code>external-sim</code> para KYC, OSS, pago, notificaciones y SRI.</li>
+</ul>
+<h3 id="caracteristicas-operativas">Caracteristicas Operativas</h3>
+<ul>
+<li>Rolling updates.</li>
+<li>Liveness/readiness probes con delays para evitar reinicios prematuros.</li>
+<li>Auto-healing por Kubernetes.</li>
+<li>Tolerancia a fallos por replica unica controlada, con reinicio automatico de pods.</li>
+<li>Logs centralizados para diagnostico.</li>
+<li>Separacion por charts y releases para cada componente.</li>
+</ul>
+<h3 id="consideraciones-de-on-premise">Consideraciones De On-Premise</h3>
+<ul>
+<li>Adecuado para un laboratorio, demo o entorno de despliegue inicial.</li>
+<li>El punto mas sensible es la disponibilidad del nodo unico.</li>
+<li>Si la VM cae, la recuperacion depende de backups y de la capacidad de reconstruccion del entorno.</li>
+<li>Para alta disponibilidad real, habria que pasar a un cluster con varios nodos.</li>
+<li>El despliegue actual corre sobre un servidor con 3 CPU y 4 GB de RAM, por lo que los recursos fueron ajustados para operar dentro de ese presupuesto.</li>
+</ul>
+<h2 id="arquitectura-objetivo-en-aws">Arquitectura Objetivo En AWS</h2>
+<p>La version en AWS debe conservar la modularidad actual, pero usando servicios gestionados para reducir carga operativa.</p>
+<h3 id="propuesta-base">Propuesta Base</h3>
+<ul>
+<li><strong>Frontend web</strong>: S3 + CloudFront, o ECS/App Runner si se necesita SSR.</li>
+<li><strong>Frontend movil</strong>: distribucion nativa iOS/Android, consumiendo la misma API.</li>
+<li><strong>Microservicios</strong>: ECS Fargate o EKS.</li>
+<li><strong>Base transaccional</strong>: RDS PostgreSQL.</li>
+<li><strong>Cache</strong>: ElastiCache Redis.</li>
+<li><strong>Auditoria y logs</strong>: CloudWatch Logs, con opcion de Grafana administrado.</li>
+<li><strong>Almacenamiento de archivos</strong>: S3.</li>
+<li><strong>Seguridad</strong>: IAM, Secrets Manager, WAF, ACM.</li>
+<li><strong>Balanceo</strong>: ALB.</li>
+</ul>
+<h3 id="diagrama-aws">Diagrama AWS</h3>
+<figure class="diagram-card"><figcaption>Diagrama Mermaid renderizado</figcaption><div class="mermaid">flowchart LR
+  U[Usuario web o movil] --&gt; CF[CloudFront / ALB]
+  CF --&gt; ID[Keycloak / OIDC]
+  CF --&gt; E[ECS Fargate o EKS]
+  E --&gt; R[(RDS PostgreSQL)]
+  E --&gt; X[(ElastiCache Redis)]
+  E --&gt; B[(S3)]
+  E --&gt; W[CloudWatch / Grafana]</div></figure>
+<h3 id="alta-disponibilidad-en-aws">Alta Disponibilidad En AWS</h3>
+<ul>
+<li>Despliegue multi-AZ.</li>
+<li>RDS Multi-AZ.</li>
+<li>Auto Scaling para microservicios.</li>
+<li>Health checks en ALB.</li>
+<li>Reinicio automatico de tareas fallidas.</li>
+<li>Backups automaticos y snapshots.</li>
+<li>IaC con Terraform o AWS CDK.</li>
+</ul>
+<h3 id="recuperacion-ante-desastres">Recuperacion Ante Desastres</h3>
+<ul>
+<li>Backups programados de bases de datos.</li>
+<li>Versionado de imagenes en ECR.</li>
+<li>Infraestructura reproducible con IaC.</li>
+<li>Runbooks de recuperacion.</li>
+<li>Exportacion de logs y metricas.</li>
+</ul>
+<h2 id="cumplimiento-normativo">Cumplimiento Normativo</h2>
+<p>La solucion ya incorpora controles base de cumplimiento normativo para telecom y datos sensibles. Estos controles no sustituyen una certificacion formal, pero dejan la arquitectura preparada para operar bajo marcos regulatorios locales, regionales y sectoriales.</p>
+<p>La solucion ya tiene:</p>
+<ul>
+<li>Consideracion de la ley local de proteccion de datos del pais de operacion como marco principal de tratamiento de datos personales.</li>
+<li>Preparacion para GDPR cuando exista tratamiento de datos de usuarios de la Union Europea, incluyendo minimizacion, consentimiento, trazabilidad y eliminacion de datos.</li>
+<li>Separacion del <code>payment_service</code> y simulacion de pasarela externa, dejando el alcance preparado para PCI DSS si se procesan pagos con tarjeta.</li>
+<li>Consideracion de normativa especifica de seguridad de comunicaciones aplicable al sector telecom.</li>
+<li>SSL/TLS en transito mediante certificados aplicados en Ingress, gateway y frontend.</li>
+<li>WAF implementado con Cloudflare para proteger el dominio publico ante trafico malicioso, ataques comunes de capa web y reglas de filtrado perimetral.</li>
+<li>Cifrado en reposo para proteger informacion sensible almacenada en base de datos.</li>
+<li>Politicas de clasificacion, retencion y eliminacion segura de datos desde el diseno de seguridad.</li>
+<li>Consentimiento explicito para procesos de onboarding que involucren biometria, documentos o verificacion de identidad.</li>
+<li>Trazabilidad de acciones de usuario y accesos privilegiados mediante <code>audit_service</code>, registros de eventos y logs centralizados.</li>
+<li>Observabilidad operativa con Grafana, Loki y Promtail para facilitar investigacion, evidencia tecnica y respuesta ante incidentes.</li>
+</ul>
+<h2 id="flujo-de-despliegue-ci-cd-devops">Flujo De Despliegue CI/CD DevOps</h2>
+<p>El proyecto ya tiene implementado un flujo DevOps CI/CD con GitHub Actions, GitHub Container Registry, Docker, Helm y Kubernetes.</p>
+<p>Flujo aplicado:</p>
+<ul>
+<li>Los cambios en <code>main</code> o la ejecucion manual con <code>workflow_dispatch</code> disparan los pipelines.</li>
+<li>Los workflows detectan cambios por ruta para evitar despliegues innecesarios.</li>
+<li>Los servicios Python se validan con compilacion previa mediante <code>python3 -m compileall</code>.</li>
+<li>Las imagenes Docker se construyen con tags por <code>GITHUB_SHA</code> y <code>latest</code>.</li>
+<li>Las imagenes se publican en GitHub Container Registry (<code>ghcr.io</code>).</li>
+<li>El runner self-hosted valida acceso al cluster Kubernetes.</li>
+<li>Los despliegues se realizan con <code>helm upgrade --install</code>.</li>
+<li>Kubernetes verifica el rollout de cada deployment antes de cerrar el pipeline.</li>
+<li>Si ocurre una falla, el pipeline muestra diagnosticos con <code>kubectl get</code>, <code>kubectl describe</code> y <code>kubectl logs</code>.</li>
+</ul>
+<p>Pipelines implementados:</p>
+<ul>
+<li><code>microservices-ci.yml</code>: construye, publica y despliega los microservicios FastAPI.</li>
+<li><code>ui-ci.yml</code>: construye la UI Next.js, publica la imagen y despliega el frontend.</li>
+<li><code>audit-service-ci.yml</code>: permite despliegue manual del servicio de auditoria.</li>
+<li><code>external-services-ci.yml</code>: construye, publica y despliega los servicios externos simulados en el namespace <code>external-sim</code>.</li>
+</ul>
+<p>Este flujo puede evolucionar a DevSecOps incorporando controles de seguridad automatizados dentro del pipeline, por ejemplo:</p>
+<ul>
+<li>Analisis SAST de codigo.</li>
+<li>Escaneo de dependencias y SBOM.</li>
+<li>Escaneo de imagenes Docker antes de publicarlas.</li>
+<li>Validacion de secretos expuestos.</li>
+<li>Analisis de IaC y manifiestos Helm/Kubernetes.</li>
+<li>Firmado de imagenes y politicas de admision en Kubernetes.</li>
+<li>Gates de cumplimiento para impedir despliegues con vulnerabilidades criticas.</li>
+</ul>
+<h2 id="recomendacion-de-diseno">Recomendacion De Diseno</h2>
+<ul>
+<li>Mantener los microservicios desacoplados.</li>
+<li>No compartir modulos <code>shared</code> entre servicios.</li>
+<li>Reutilizar contratos, no logica de dominio.</li>
+<li>Usar patrones <code>Repository</code>, <code>Strategy</code> y <code>Cache-Aside</code>.</li>
+<li>Tratar la auditoria como un flujo separado de la observabilidad.</li>
+</ul>
+<h2 id="estado-de-entrega">Estado De Entrega</h2>
+<p>La solucion ya incorpora:</p>
+<ul>
+<li>login web con Keycloak</li>
+<li>bloqueo de dashboard hasta verificar onboarding</li>
+<li>onboarding web funcional</li>
+<li>app movil base con login y onboarding</li>
+<li>infraestructura de bases de datos en Kubernetes</li>
+<li>observabilidad con Loki/Grafana/Promtail</li>
+<li>ajustes de imagenes y recursos para un entorno de recursos limitados</li>
+</ul>
+<h2 id="conclusion">Conclusion</h2>
+<p>La arquitectura actual es adecuada como plataforma on-premise sobre una VM o cluster pequeno. Para AWS, la misma solucion puede evolucionar a una plataforma gestionada con ECS Fargate, RDS, CloudFront, CloudWatch y Secrets Manager, manteniendo el desacoplamiento y mejorando disponibilidad, escalabilidad y resiliencia.</p>
+<h2 id="glosario-de-siglas">Glosario De Siglas</h2>
+<ul>
+<li><code>PKCE</code>: Proof Key for Code Exchange. Extension del flujo OAuth 2.0 para proteger clientes publicos.</li>
+<li><code>OIDC</code>: OpenID Connect. Capa de autenticacion construida sobre OAuth 2.0.</li>
+<li><code>OAuth 2.0</code>: Protocolo de autorizacion para conceder acceso a recursos sin compartir contrasenas.</li>
+<li><code>TLS</code>: Transport Layer Security. Protocolo de cifrado en transito.</li>
+<li><code>SSL</code>: Secure Sockets Layer. Nombre historico usado comunmente para referirse a TLS.</li>
+<li><code>KYC</code>: Know Your Customer. Verificacion de identidad y riesgo del usuario.</li>
+<li><code>BSS</code>: Business Support Systems. Sistemas de soporte al negocio en telecom.</li>
+<li><code>OSS</code>: Operations Support Systems. Sistemas de soporte operativo en telecom.</li>
+<li><code>SRI</code>: Servicio de Rentas Internas. En este proyecto, referencia a validacion fiscal.</li>
+<li><code>MFA</code>: Multi-Factor Authentication. Autenticacion multifactor.</li>
+<li><code>SSR</code>: Server-Side Rendering. Renderizado en servidor.</li>
+<li><code>CQRS</code>: Command Query Responsibility Segregation. Separacion de comandos y consultas.</li>
+<li><code>DR</code>: Disaster Recovery. Recuperacion ante desastres.</li>
+<li><code>HA</code>: High Availability. Alta disponibilidad.</li>
+<li><code>WAF</code>: Web Application Firewall. Firewall de aplicaciones web.</li>
+<li><code>IAM</code>: Identity and Access Management. Gestion de identidades y permisos.</li>
+<li><code>ALB</code>: Application Load Balancer. Balanceador de aplicaciones de AWS.</li>
+<li><code>ECS</code>: Elastic Container Service. Orquestacion de contenedores en AWS.</li>
+<li><code>EKS</code>: Elastic Kubernetes Service. Kubernetes administrado en AWS.</li>
+<li><code>RDS</code>: Relational Database Service. Base de datos relacional administrada por AWS.</li>
+<li><code>ECR</code>: Elastic Container Registry. Registro de imagenes de AWS.</li>
+<li><code>S3</code>: Simple Storage Service. Almacenamiento de objetos de AWS.</li>
+<li><code>SNS</code>: Simple Notification Service. Servicio de notificaciones de AWS.</li>
+<li><code>SQS</code>: Simple Queue Service. Servicio de colas de AWS.</li>
+</ul>
+      <section id="diagramas-drawio-integrados" class="drawio-section">
+        <h2>Diagramas Draw.io Integrados</h2>
+        <p>Estos diagramas se cargan desde <code>docs/TELCOX_ARCHITECTURE.drawio</code> y se muestran con el visor de diagrams.net.</p>
+        <section class="drawio-card"><h3>On-Premise</h3><div class="mxgraph" data-mxgraph='{&quot;highlight&quot;: &quot;#2E74B5&quot;, &quot;nav&quot;: true, &quot;resize&quot;: true, &quot;toolbar&quot;: &quot;zoom layers lightbox&quot;, &quot;edit&quot;: &quot;_blank&quot;, &quot;xml&quot;: &quot;&lt;mxGraphModel dx=\&quot;1426\&quot; dy=\&quot;743\&quot; grid=\&quot;1\&quot; gridSize=\&quot;10\&quot; guides=\&quot;1\&quot; tooltips=\&quot;1\&quot; connect=\&quot;1\&quot; arrows=\&quot;1\&quot; fold=\&quot;1\&quot; page=\&quot;1\&quot; pageScale=\&quot;1\&quot; pageWidth=\&quot;1400\&quot; pageHeight=\&quot;900\&quot; math=\&quot;0\&quot; shadow=\&quot;0\&quot;&gt;\n      &lt;root&gt;\n        &lt;mxCell id=\&quot;0\&quot; /&gt;\n        &lt;mxCell id=\&quot;1\&quot; parent=\&quot;0\&quot; /&gt;\n        &lt;mxCell id=\&quot;op-title\&quot; value=\&quot;TelcoX - Arquitectura On-Premise Implementada\&quot; style=\&quot;text;html=1;strokeColor=none;fillColor=none;fontSize=22;fontStyle=1;align=center;verticalAlign=middle;\&quot; parent=\&quot;1\&quot; vertex=\&quot;1\&quot;&gt;\n          &lt;mxGeometry x=\&quot;360\&quot; y=\&quot;20\&quot; width=\&quot;680\&quot; height=\&quot;40\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;op-waf\&quot; value=\&quot;Cloudflare WAF&amp;#10;Dominio publico&amp;#10;SSL/TLS\&quot; style=\&quot;shape=mxgraph.cisco.security.firewall;html=1;verticalLabelPosition=bottom;verticalAlign=top;align=center;fillColor=#f38020;strokeColor=#b35a12;fontStyle=1;\&quot; parent=\&quot;1\&quot; vertex=\&quot;1\&quot;&gt;\n          &lt;mxGeometry x=\&quot;290\&quot; y=\&quot;297.5\&quot; width=\&quot;105\&quot; height=\&quot;110\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;op-k8s\&quot; value=\&quot;Datacenter On-Premise: VM / Cluster Kubernetes pequeno\&quot; style=\&quot;swimlane;whiteSpace=wrap;html=1;rounded=1;startSize=32;fillColor=#f3f6f9;strokeColor=#4b5563;fontStyle=1;\&quot; parent=\&quot;1\&quot; vertex=\&quot;1\&quot;&gt;\n          &lt;mxGeometry x=\&quot;540\&quot; y=\&quot;90\&quot; width=\&quot;1140\&quot; height=\&quot;920\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;op-traefik\&quot; value=\&quot;Ingress / API Gateway&amp;#10;Traefik\&quot; style=\&quot;shape=mxgraph.cisco19.rect;prIcon=router;html=1;verticalLabelPosition=bottom;verticalAlign=top;align=center;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;\&quot; parent=\&quot;op-k8s\&quot; vertex=\&quot;1\&quot;&gt;\n          &lt;mxGeometry x=\&quot;75\&quot; y=\&quot;225\&quot; width=\&quot;85\&quot; height=\&quot;75\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;op-keycloak\&quot; value=\&quot;Keycloak&amp;#10;OIDC + PKCE\&quot; style=\&quot;shape=mxgraph.basic.key;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1;\&quot; parent=\&quot;op-k8s\&quot; vertex=\&quot;1\&quot;&gt;\n          &lt;mxGeometry x=\&quot;40\&quot; y=\&quot;400\&quot; width=\&quot;155\&quot; height=\&quot;75\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;op-services\&quot; value=\&quot;\&quot; style=\&quot;shape=mxgraph.kubernetes.pod;html=1;verticalLabelPosition=bottom;verticalAlign=top;align=left;fillColor=#326ce5;strokeColor=#1d4fb8;fontStyle=1;\&quot; parent=\&quot;op-k8s\&quot; vertex=\&quot;1\&quot;&gt;\n          &lt;mxGeometry x=\&quot;365\&quot; y=\&quot;210\&quot; width=\&quot;230\&quot; height=\&quot;140\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;op-observability\&quot; value=\&quot;&amp;lt;br&amp;gt;Promtail - Loki - Grafana&amp;lt;br&amp;gt;Logs centralizados\&quot; style=\&quot;shape=mxgraph.basic.eye;whiteSpace=wrap;html=1;fillColor=#e6d0de;strokeColor=#996185;fontStyle=1;\&quot; parent=\&quot;op-k8s\&quot; vertex=\&quot;1\&quot;&gt;\n          &lt;mxGeometry x=\&quot;685\&quot; y=\&quot;390\&quot; width=\&quot;150\&quot; height=\&quot;80\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;op-external\&quot; value=\&quot;Servicios Externos KYC | OSS | Pagos&amp;lt;br&amp;gt;Notificaciones | SRI\&quot; style=\&quot;shape=mxgraph.kubernetes.namespace;html=1;verticalLabelPosition=bottom;verticalAlign=top;align=center;fillColor=#fff2cc;strokeColor=#d6b656;\&quot; parent=\&quot;op-k8s\&quot; vertex=\&quot;1\&quot;&gt;\n          &lt;mxGeometry x=\&quot;685\&quot; y=\&quot;530\&quot; width=\&quot;145\&quot; height=\&quot;80\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;op-e3\&quot; value=\&quot;OIDC / PKCE\&quot; style=\&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;exitX=0.5;exitY=1;entryX=0.5;entryY=0;\&quot; parent=\&quot;op-k8s\&quot; source=\&quot;op-traefik\&quot; target=\&quot;op-keycloak\&quot; edge=\&quot;1\&quot;&gt;\n          &lt;mxGeometry relative=\&quot;1\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;op-e6\&quot; value=\&quot;API\&quot; style=\&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;exitX=1;exitY=0.75;entryX=0;entryY=0.5;\&quot; parent=\&quot;op-k8s\&quot; source=\&quot;op-traefik\&quot; target=\&quot;op-services\&quot; edge=\&quot;1\&quot;&gt;\n          &lt;mxGeometry relative=\&quot;1\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;op-e8\&quot; style=\&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;exitX=1;exitY=0.25;entryX=0;entryY=0.5;\&quot; parent=\&quot;op-k8s\&quot; source=\&quot;op-services\&quot; target=\&quot;op-postgres\&quot; edge=\&quot;1\&quot;&gt;\n          &lt;mxGeometry relative=\&quot;1\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;op-e9\&quot; style=\&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;exitX=1;exitY=0.55;entryX=0;entryY=0.5;\&quot; parent=\&quot;op-k8s\&quot; source=\&quot;op-services\&quot; target=\&quot;op-mongo\&quot; edge=\&quot;1\&quot;&gt;\n          &lt;mxGeometry relative=\&quot;1\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;op-e10\&quot; value=\&quot;logs\&quot; style=\&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;exitX=0.45;exitY=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;\&quot; parent=\&quot;op-k8s\&quot; source=\&quot;op-services\&quot; target=\&quot;op-observability\&quot; edge=\&quot;1\&quot;&gt;\n          &lt;mxGeometry relative=\&quot;1\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;op-e11\&quot; value=\&quot;KYC / OSS / pagos\&quot; style=\&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;exitX=0.25;exitY=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;\&quot; parent=\&quot;op-k8s\&quot; source=\&quot;op-services\&quot; target=\&quot;op-external\&quot; edge=\&quot;1\&quot;&gt;\n          &lt;mxGeometry relative=\&quot;1\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;p1dfeFf-ra87-I6aC3hr-2\&quot; value=\&quot;\&quot; style=\&quot;group\&quot; vertex=\&quot;1\&quot; connectable=\&quot;0\&quot; parent=\&quot;op-k8s\&quot;&gt;\n          &lt;mxGeometry x=\&quot;695\&quot; y=\&quot;60\&quot; width=\&quot;140\&quot; height=\&quot;105\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;op-postgres\&quot; value=\&quot;PostgreSQL&amp;#10;Datos transaccionales&amp;#10;Cifrado en reposo\&quot; style=\&quot;shape=mxgraph.cisco.storage.database;html=1;verticalLabelPosition=bottom;verticalAlign=top;align=center;fillColor=#336791;strokeColor=#1f4768;fontColor=#000000;\&quot; parent=\&quot;p1dfeFf-ra87-I6aC3hr-2\&quot; vertex=\&quot;1\&quot;&gt;\n          &lt;mxGeometry width=\&quot;140\&quot; height=\&quot;105\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;p1dfeFf-ra87-I6aC3hr-1\&quot; value=\&quot;\&quot; style=\&quot;image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/databases/Azure_Database_PostgreSQL_Server.svg;\&quot; vertex=\&quot;1\&quot; parent=\&quot;p1dfeFf-ra87-I6aC3hr-2\&quot;&gt;\n          &lt;mxGeometry x=\&quot;45\&quot; y=\&quot;17.159999999999997\&quot; width=\&quot;53\&quot; height=\&quot;70.67\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;p1dfeFf-ra87-I6aC3hr-4\&quot; value=\&quot;\&quot; style=\&quot;group\&quot; vertex=\&quot;1\&quot; connectable=\&quot;0\&quot; parent=\&quot;op-k8s\&quot;&gt;\n          &lt;mxGeometry x=\&quot;680\&quot; y=\&quot;240\&quot; width=\&quot;155\&quot; height=\&quot;95.2\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;op-mongo\&quot; value=\&quot;MongoDB&amp;#10;Datos documentales\&quot; style=\&quot;shape=mxgraph.cisco.storage.storage_array;html=1;verticalLabelPosition=bottom;verticalAlign=top;align=center;fillColor=none;strokeColor=#2b6f2c;fontColor=#000000;\&quot; parent=\&quot;p1dfeFf-ra87-I6aC3hr-4\&quot; vertex=\&quot;1\&quot;&gt;\n          &lt;mxGeometry width=\&quot;155\&quot; height=\&quot;95.00000000000001\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;p1dfeFf-ra87-I6aC3hr-3\&quot; value=\&quot;\&quot; style=\&quot;dashed=0;outlineConnect=0;html=1;align=center;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;shape=mxgraph.weblogos.mongodb\&quot; vertex=\&quot;1\&quot; parent=\&quot;p1dfeFf-ra87-I6aC3hr-4\&quot;&gt;\n          &lt;mxGeometry x=\&quot;55.35714285714286\&quot; y=\&quot;9.000000000000002\&quot; width=\&quot;45.61428571428572\&quot; height=\&quot;86.20000000000002\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;p1dfeFf-ra87-I6aC3hr-5\&quot; value=\&quot;\&quot; style=\&quot;aspect=fixed;sketch=0;html=1;dashed=0;whitespace=wrap;verticalLabelPosition=bottom;verticalAlign=top;fillColor=#2875E2;strokeColor=#ffffff;points=[[0.005,0.63,0],[0.1,0.2,0],[0.9,0.2,0],[0.5,0,0],[0.995,0.63,0],[0.72,0.99,0],[0.5,1,0],[0.28,0.99,0]];shape=mxgraph.kubernetes.icon2;prIcon=api\&quot; vertex=\&quot;1\&quot; parent=\&quot;op-k8s\&quot;&gt;\n          &lt;mxGeometry x=\&quot;420\&quot; y=\&quot;264\&quot; width=\&quot;50\&quot; height=\&quot;48\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;op-e1\&quot; style=\&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;strokeWidth=2;\&quot; parent=\&quot;1\&quot; source=\&quot;op-users\&quot; target=\&quot;op-waf\&quot; edge=\&quot;1\&quot;&gt;\n          &lt;mxGeometry relative=\&quot;1\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;op-e2\&quot; style=\&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;strokeWidth=2;\&quot; parent=\&quot;1\&quot; source=\&quot;op-waf\&quot; target=\&quot;op-traefik\&quot; edge=\&quot;1\&quot;&gt;\n          &lt;mxGeometry relative=\&quot;1\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;p1dfeFf-ra87-I6aC3hr-14\&quot; value=\&quot;\&quot; style=\&quot;group\&quot; vertex=\&quot;1\&quot; connectable=\&quot;0\&quot; parent=\&quot;1\&quot;&gt;\n          &lt;mxGeometry x=\&quot;60\&quot; y=\&quot;312.5\&quot; width=\&quot;120\&quot; height=\&quot;80\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;op-users\&quot; value=\&quot;Usuarios&amp;#10;Web y Movil\&quot; style=\&quot;shape=mxgraph.cisco.people.users;html=1;verticalLabelPosition=bottom;verticalAlign=top;align=center;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;\&quot; parent=\&quot;p1dfeFf-ra87-I6aC3hr-14\&quot; vertex=\&quot;1\&quot;&gt;\n          &lt;mxGeometry width=\&quot;120\&quot; height=\&quot;80\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;p1dfeFf-ra87-I6aC3hr-11\&quot; value=\&quot;\&quot; style=\&quot;aspect=fixed;sketch=0;html=1;dashed=0;whitespace=wrap;verticalLabelPosition=bottom;verticalAlign=top;fillColor=#2875E2;strokeColor=#ffffff;points=[[0.005,0.63,0],[0.1,0.2,0],[0.9,0.2,0],[0.5,0,0],[0.995,0.63,0],[0.72,0.99,0],[0.5,1,0],[0.28,0.99,0]];shape=mxgraph.kubernetes.icon2;kubernetesLabel=1;prIcon=user\&quot; vertex=\&quot;1\&quot; parent=\&quot;p1dfeFf-ra87-I6aC3hr-14\&quot;&gt;\n          &lt;mxGeometry x=\&quot;10\&quot; y=\&quot;23.19999999999999\&quot; width=\&quot;35\&quot; height=\&quot;33.6\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;p1dfeFf-ra87-I6aC3hr-12\&quot; value=\&quot;\&quot; style=\&quot;image;aspect=fixed;perimeter=ellipsePerimeter;html=1;align=center;shadow=0;dashed=0;fontColor=#4277BB;labelBackgroundColor=default;fontSize=12;spacingTop=3;image=img/lib/ibm/users/browser.svg;\&quot; vertex=\&quot;1\&quot; parent=\&quot;p1dfeFf-ra87-I6aC3hr-14\&quot;&gt;\n          &lt;mxGeometry x=\&quot;90\&quot; y=\&quot;2.5\&quot; width=\&quot;30\&quot; height=\&quot;30\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;p1dfeFf-ra87-I6aC3hr-13\&quot; value=\&quot;\&quot; style=\&quot;html=1;verticalLabelPosition=bottom;align=center;labelBackgroundColor=#ffffff;verticalAlign=top;strokeWidth=2;strokeColor=#0080F0;shadow=0;dashed=0;shape=mxgraph.ios7.icons.smartphone;\&quot; vertex=\&quot;1\&quot; parent=\&quot;p1dfeFf-ra87-I6aC3hr-14\&quot;&gt;\n          &lt;mxGeometry x=\&quot;96\&quot; y=\&quot;47.5\&quot; width=\&quot;18\&quot; height=\&quot;30\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n      &lt;/root&gt;\n    &lt;/mxGraphModel&gt;\n  &quot;}'></div></section>
+<section class="drawio-card"><h3>AWS Objetivo</h3><div class="mxgraph" data-mxgraph='{&quot;highlight&quot;: &quot;#2E74B5&quot;, &quot;nav&quot;: true, &quot;resize&quot;: true, &quot;toolbar&quot;: &quot;zoom layers lightbox&quot;, &quot;edit&quot;: &quot;_blank&quot;, &quot;xml&quot;: &quot;&lt;mxGraphModel dx=\&quot;3437\&quot; dy=\&quot;1061\&quot; grid=\&quot;1\&quot; gridSize=\&quot;10\&quot; guides=\&quot;1\&quot; tooltips=\&quot;1\&quot; connect=\&quot;1\&quot; arrows=\&quot;1\&quot; fold=\&quot;1\&quot; page=\&quot;1\&quot; pageScale=\&quot;1\&quot; pageWidth=\&quot;1400\&quot; pageHeight=\&quot;900\&quot; math=\&quot;0\&quot; shadow=\&quot;0\&quot;&gt;\n      &lt;root&gt;\n        &lt;mxCell id=\&quot;0\&quot; /&gt;\n        &lt;mxCell id=\&quot;1\&quot; parent=\&quot;0\&quot; /&gt;\n        &lt;mxCell id=\&quot;aws-title\&quot; value=\&quot;TelcoX - Arquitectura Objetivo En AWS\&quot; style=\&quot;text;html=1;strokeColor=none;fillColor=none;fontSize=22;fontStyle=1;align=center;verticalAlign=middle;\&quot; parent=\&quot;1\&quot; vertex=\&quot;1\&quot;&gt;\n          &lt;mxGeometry x=\&quot;360\&quot; y=\&quot;20\&quot; width=\&quot;680\&quot; height=\&quot;40\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;ExiVLY52rhQOB2LcU4Q_-16\&quot; style=\&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;\&quot; edge=\&quot;1\&quot; parent=\&quot;1\&quot; source=\&quot;aws-edge\&quot; target=\&quot;aws-ui\&quot;&gt;\n          &lt;mxGeometry relative=\&quot;1\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;aws-edge\&quot; value=\&quot;CloudFront / ALB&amp;#10;AWS WAF + ACM TLS\&quot; style=\&quot;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.cloudfront;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=#ffffff;strokeColor=#232F3E;fontStyle=1;\&quot; parent=\&quot;1\&quot; vertex=\&quot;1\&quot;&gt;\n          &lt;mxGeometry x=\&quot;30\&quot; y=\&quot;419.58\&quot; width=\&quot;150\&quot; height=\&quot;105\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;aws-cloud\&quot; value=\&quot;ZONE A\&quot; style=\&quot;swimlane;whiteSpace=wrap;html=1;rounded=1;startSize=32;fillColor=#fff8f0;strokeColor=#ff9900;fontStyle=1;\&quot; parent=\&quot;1\&quot; vertex=\&quot;1\&quot;&gt;\n          &lt;mxGeometry x=\&quot;330\&quot; y=\&quot;160\&quot; width=\&quot;1450\&quot; height=\&quot;1050\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;ExiVLY52rhQOB2LcU4Q_-12\&quot; value=\&quot;\&quot; style=\&quot;group\&quot; vertex=\&quot;1\&quot; connectable=\&quot;0\&quot; parent=\&quot;aws-cloud\&quot;&gt;\n          &lt;mxGeometry x=\&quot;50\&quot; y=\&quot;410\&quot; width=\&quot;1275\&quot; height=\&quot;535\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;aws-cloudwatch\&quot; value=\&quot;CloudWatch Logs&amp;#10;Grafana administrado&amp;#10;Metricas y auditoria\&quot; style=\&quot;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.cloudwatch;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=#ffffff;strokeColor=#232F3E;fontStyle=1;\&quot; parent=\&quot;ExiVLY52rhQOB2LcU4Q_-12\&quot; vertex=\&quot;1\&quot;&gt;\n          &lt;mxGeometry x=\&quot;588.75\&quot; y=\&quot;330.0016494845361\&quot; width=\&quot;172.5\&quot; height=\&quot;110.30927835051546\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;aws-security\&quot; value=\&quot;IAM + Secrets Manager&amp;#10;Politicas de acceso&amp;#10;secretos gestionados\&quot; style=\&quot;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.secrets_manager;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=#ffffff;strokeColor=#232F3E;fontStyle=1;\&quot; parent=\&quot;ExiVLY52rhQOB2LcU4Q_-12\&quot; vertex=\&quot;1\&quot;&gt;\n          &lt;mxGeometry x=\&quot;310\&quot; y=\&quot;9.995773195876268\&quot; width=\&quot;175\&quot; height=\&quot;115.82474226804122\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;aws-dr\&quot; value=\&quot;DR / HA&amp;#10;Snapshots, runbooks&amp;#10;IaC con Terraform o CDK\&quot; style=\&quot;rounded=1;whiteSpace=wrap;html=1;fillColor=#eeeeee;strokeColor=#666666;\&quot; parent=\&quot;ExiVLY52rhQOB2LcU4Q_-12\&quot; vertex=\&quot;1\&quot;&gt;\n          &lt;mxGeometry x=\&quot;1185\&quot; y=\&quot;-239.9226804123711\&quot; width=\&quot;200\&quot; height=\&quot;99.27835051546391\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;aws-id\&quot; value=\&quot;Keycloak / OIDC&amp;#10;Identidad\&quot; style=\&quot;rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1;\&quot; parent=\&quot;aws-cloud\&quot; vertex=\&quot;1\&quot;&gt;\n          &lt;mxGeometry x=\&quot;75\&quot; y=\&quot;60\&quot; width=\&quot;160\&quot; height=\&quot;85\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;ExiVLY52rhQOB2LcU4Q_-14\&quot; value=\&quot;\&quot; style=\&quot;outlineConnect=0;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;shape=mxgraph.aws3.cognito;fillColor=#AD688B;gradientColor=none;\&quot; vertex=\&quot;1\&quot; parent=\&quot;aws-cloud\&quot;&gt;\n          &lt;mxGeometry x=\&quot;260\&quot; y=\&quot;72.5\&quot; width=\&quot;46.5\&quot; height=\&quot;60\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;aws-rds\&quot; value=\&quot;RDS PostgreSQL&amp;#10;Multi-AZ&amp;#10;Backups automaticos\&quot; style=\&quot;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.rds;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=#ffffff;strokeColor=#232F3E;\&quot; parent=\&quot;aws-cloud\&quot; vertex=\&quot;1\&quot;&gt;\n          &lt;mxGeometry x=\&quot;920\&quot; y=\&quot;32.5\&quot; width=\&quot;155\&quot; height=\&quot;115\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;aws-e10\&quot; value=\&quot;respaldo y recuperacion\&quot; style=\&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;dashed=1;\&quot; parent=\&quot;aws-cloud\&quot; source=\&quot;aws-rds\&quot; target=\&quot;aws-dr\&quot; edge=\&quot;1\&quot;&gt;\n          &lt;mxGeometry relative=\&quot;1\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;aws-e5\&quot; style=\&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;exitX=1;exitY=0.25;entryX=0;entryY=0.5;\&quot; parent=\&quot;aws-cloud\&quot; source=\&quot;aws-compute\&quot; target=\&quot;aws-rds\&quot; edge=\&quot;1\&quot;&gt;\n          &lt;mxGeometry relative=\&quot;1\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;aws-compute\&quot; value=\&quot;ECS Fargate / EKS&amp;#10;Microservicios FastAPI&amp;#10;Auto Scaling + health checks\&quot; style=\&quot;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.ecs;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=#ffffff;strokeColor=#232F3E;fontStyle=1;\&quot; parent=\&quot;aws-cloud\&quot; vertex=\&quot;1\&quot;&gt;\n          &lt;mxGeometry x=\&quot;610\&quot; y=\&quot;197.5\&quot; width=\&quot;230\&quot; height=\&quot;130\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;aws-e9\&quot; value=\&quot;secretos / permisos\&quot; style=\&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;dashed=1;exitX=1;exitY=0.35;\&quot; parent=\&quot;aws-cloud\&quot; source=\&quot;aws-security\&quot; target=\&quot;aws-compute\&quot; edge=\&quot;1\&quot;&gt;\n          &lt;mxGeometry relative=\&quot;1\&quot; as=\&quot;geometry\&quot;&gt;\n            &lt;mxPoint x=\&quot;620\&quot; y=\&quot;310\&quot; as=\&quot;targetPoint\&quot; /&gt;\n          &lt;/mxGeometry&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;aws-e8\&quot; value=\&quot;logs / metricas\&quot; style=\&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;exitX=0.5;exitY=1;entryX=0.5;entryY=0;\&quot; parent=\&quot;aws-cloud\&quot; source=\&quot;aws-compute\&quot; target=\&quot;aws-cloudwatch\&quot; edge=\&quot;1\&quot;&gt;\n          &lt;mxGeometry relative=\&quot;1\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;aws-e7\&quot; style=\&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;exitX=1;exitY=0.75;entryX=0;entryY=0.5;\&quot; parent=\&quot;aws-cloud\&quot; source=\&quot;aws-compute\&quot; target=\&quot;aws-s3\&quot; edge=\&quot;1\&quot;&gt;\n          &lt;mxGeometry relative=\&quot;1\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;aws-e6\&quot; style=\&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;exitX=1;exitY=0.5;entryX=0;entryY=0.5;\&quot; parent=\&quot;aws-cloud\&quot; source=\&quot;aws-compute\&quot; target=\&quot;aws-redis\&quot; edge=\&quot;1\&quot;&gt;\n          &lt;mxGeometry relative=\&quot;1\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;aws-redis\&quot; value=\&quot;ElastiCache Redis&amp;#10;Cache-Aside\&quot; style=\&quot;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.elasticache;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=#ffffff;strokeColor=#232F3E;\&quot; parent=\&quot;aws-cloud\&quot; vertex=\&quot;1\&quot;&gt;\n          &lt;mxGeometry x=\&quot;920\&quot; y=\&quot;210\&quot; width=\&quot;155\&quot; height=\&quot;105\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;ExiVLY52rhQOB2LcU4Q_-10\&quot; value=\&quot;\&quot; style=\&quot;group\&quot; vertex=\&quot;1\&quot; connectable=\&quot;0\&quot; parent=\&quot;aws-cloud\&quot;&gt;\n          &lt;mxGeometry x=\&quot;360\&quot; y=\&quot;249.99938144329897\&quot; width=\&quot;164.25\&quot; height=\&quot;118.58247422680411\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;ExiVLY52rhQOB2LcU4Q_-9\&quot; value=\&quot;&amp;lt;div&amp;gt;&amp;lt;br&amp;gt;&amp;lt;/div&amp;gt;&amp;lt;div&amp;gt;&amp;lt;br&amp;gt;&amp;lt;/div&amp;gt;&amp;lt;div&amp;gt;&amp;lt;br&amp;gt;&amp;lt;/div&amp;gt;&amp;lt;div&amp;gt;&amp;lt;br&amp;gt;&amp;lt;/div&amp;gt;&amp;lt;div&amp;gt;&amp;lt;br&amp;gt;&amp;lt;/div&amp;gt;&amp;lt;div&amp;gt;&amp;lt;br&amp;gt;&amp;lt;/div&amp;gt;&amp;lt;div&amp;gt;&amp;lt;br&amp;gt;&amp;lt;/div&amp;gt;&amp;lt;div&amp;gt;&amp;lt;br&amp;gt;&amp;lt;/div&amp;gt;&amp;lt;div&amp;gt;&amp;lt;br&amp;gt;&amp;lt;/div&amp;gt;&amp;lt;div&amp;gt;&amp;lt;br&amp;gt;&amp;lt;/div&amp;gt;&amp;lt;div&amp;gt;Api Gateway&amp;lt;/div&amp;gt;\&quot; style=\&quot;rounded=0;whiteSpace=wrap;html=1;\&quot; vertex=\&quot;1\&quot; parent=\&quot;ExiVLY52rhQOB2LcU4Q_-10\&quot;&gt;\n          &lt;mxGeometry width=\&quot;164.25\&quot; height=\&quot;118.58247422680411\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;ExiVLY52rhQOB2LcU4Q_-8\&quot; value=\&quot;\&quot; style=\&quot;outlineConnect=0;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;shape=mxgraph.aws3.api_gateway;fillColor=#D9A741;gradientColor=none;\&quot; vertex=\&quot;1\&quot; parent=\&quot;ExiVLY52rhQOB2LcU4Q_-10\&quot;&gt;\n          &lt;mxGeometry x=\&quot;43.879999999999995\&quot; y=\&quot;4.963917525773195\&quot; width=\&quot;76.5\&quot; height=\&quot;102.58762886597937\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;ExiVLY52rhQOB2LcU4Q_-15\&quot; style=\&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;\&quot; edge=\&quot;1\&quot; parent=\&quot;aws-cloud\&quot; source=\&quot;ExiVLY52rhQOB2LcU4Q_-9\&quot; target=\&quot;aws-compute\&quot;&gt;\n          &lt;mxGeometry relative=\&quot;1\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;aws-s3\&quot; value=\&quot;Amazon S3&amp;#10;Archivos y objetos&amp;#10;versionado opcional\&quot; style=\&quot;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.s3;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=#ffffff;strokeColor=#232F3E;\&quot; parent=\&quot;aws-cloud\&quot; vertex=\&quot;1\&quot;&gt;\n          &lt;mxGeometry x=\&quot;930\&quot; y=\&quot;360.00113402061857\&quot; width=\&quot;155\&quot; height=\&quot;115.82474226804122\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;ExiVLY52rhQOB2LcU4Q_-1\&quot; value=\&quot;\&quot; style=\&quot;group\&quot; vertex=\&quot;1\&quot; connectable=\&quot;0\&quot; parent=\&quot;1\&quot;&gt;\n          &lt;mxGeometry x=\&quot;-250\&quot; y=\&quot;432.08\&quot; width=\&quot;120\&quot; height=\&quot;80\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;ExiVLY52rhQOB2LcU4Q_-2\&quot; value=\&quot;Usuarios&amp;#10;Web y Movil\&quot; style=\&quot;shape=mxgraph.cisco.people.users;html=1;verticalLabelPosition=bottom;verticalAlign=top;align=center;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;\&quot; vertex=\&quot;1\&quot; parent=\&quot;ExiVLY52rhQOB2LcU4Q_-1\&quot;&gt;\n          &lt;mxGeometry width=\&quot;120\&quot; height=\&quot;80\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;ExiVLY52rhQOB2LcU4Q_-3\&quot; value=\&quot;\&quot; style=\&quot;aspect=fixed;sketch=0;html=1;dashed=0;whitespace=wrap;verticalLabelPosition=bottom;verticalAlign=top;fillColor=#2875E2;strokeColor=#ffffff;points=[[0.005,0.63,0],[0.1,0.2,0],[0.9,0.2,0],[0.5,0,0],[0.995,0.63,0],[0.72,0.99,0],[0.5,1,0],[0.28,0.99,0]];shape=mxgraph.kubernetes.icon2;kubernetesLabel=1;prIcon=user\&quot; vertex=\&quot;1\&quot; parent=\&quot;ExiVLY52rhQOB2LcU4Q_-1\&quot;&gt;\n          &lt;mxGeometry x=\&quot;10\&quot; y=\&quot;23.19999999999999\&quot; width=\&quot;35\&quot; height=\&quot;33.6\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;ExiVLY52rhQOB2LcU4Q_-4\&quot; value=\&quot;\&quot; style=\&quot;image;aspect=fixed;perimeter=ellipsePerimeter;html=1;align=center;shadow=0;dashed=0;fontColor=#4277BB;labelBackgroundColor=default;fontSize=12;spacingTop=3;image=img/lib/ibm/users/browser.svg;\&quot; vertex=\&quot;1\&quot; parent=\&quot;ExiVLY52rhQOB2LcU4Q_-1\&quot;&gt;\n          &lt;mxGeometry x=\&quot;90\&quot; y=\&quot;2.5\&quot; width=\&quot;30\&quot; height=\&quot;30\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;ExiVLY52rhQOB2LcU4Q_-5\&quot; value=\&quot;\&quot; style=\&quot;html=1;verticalLabelPosition=bottom;align=center;labelBackgroundColor=#ffffff;verticalAlign=top;strokeWidth=2;strokeColor=#0080F0;shadow=0;dashed=0;shape=mxgraph.ios7.icons.smartphone;\&quot; vertex=\&quot;1\&quot; parent=\&quot;ExiVLY52rhQOB2LcU4Q_-1\&quot;&gt;\n          &lt;mxGeometry x=\&quot;96\&quot; y=\&quot;47.5\&quot; width=\&quot;18\&quot; height=\&quot;30\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;ExiVLY52rhQOB2LcU4Q_-7\&quot; style=\&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;\&quot; edge=\&quot;1\&quot; parent=\&quot;1\&quot; source=\&quot;ExiVLY52rhQOB2LcU4Q_-2\&quot; target=\&quot;aws-edge\&quot;&gt;\n          &lt;mxGeometry relative=\&quot;1\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;ExiVLY52rhQOB2LcU4Q_-13\&quot; value=\&quot;\&quot; style=\&quot;group\&quot; vertex=\&quot;1\&quot; connectable=\&quot;0\&quot; parent=\&quot;1\&quot;&gt;\n          &lt;mxGeometry x=\&quot;400\&quot; y=\&quot;412.10051546391753\&quot; width=\&quot;170\&quot; height=\&quot;119.96134020618555\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;aws-ui\&quot; value=\&quot;&amp;lt;div&amp;gt;&amp;lt;br&amp;gt;&amp;lt;/div&amp;gt;&amp;lt;div&amp;gt;&amp;lt;br&amp;gt;&amp;lt;/div&amp;gt;&amp;lt;div&amp;gt;&amp;lt;br&amp;gt;&amp;lt;/div&amp;gt;&amp;lt;div&amp;gt;&amp;lt;br&amp;gt;&amp;lt;/div&amp;gt;&amp;lt;div&amp;gt;&amp;lt;br&amp;gt;&amp;lt;/div&amp;gt;&amp;lt;div&amp;gt;&amp;lt;br&amp;gt;&amp;lt;/div&amp;gt;&amp;lt;div&amp;gt;&amp;lt;br&amp;gt;&amp;lt;/div&amp;gt;&amp;lt;div&amp;gt;&amp;lt;br&amp;gt;&amp;lt;/div&amp;gt;&amp;lt;div&amp;gt;&amp;lt;br&amp;gt;&amp;lt;/div&amp;gt;&amp;lt;div&amp;gt;&amp;lt;br&amp;gt;&amp;lt;/div&amp;gt;&amp;lt;div&amp;gt;&amp;lt;br&amp;gt;&amp;lt;/div&amp;gt;&amp;lt;div&amp;gt;&amp;lt;br&amp;gt;&amp;lt;/div&amp;gt;&amp;lt;div&amp;gt;&amp;lt;br&amp;gt;&amp;lt;/div&amp;gt;&amp;lt;div&amp;gt;Frontend web&amp;lt;br&amp;gt;S3 + CloudFront&amp;lt;br&amp;gt;o App Runner para SSR&amp;lt;/div&amp;gt;\&quot; style=\&quot;rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;\&quot; parent=\&quot;ExiVLY52rhQOB2LcU4Q_-13\&quot; vertex=\&quot;1\&quot;&gt;\n          &lt;mxGeometry width=\&quot;170\&quot; height=\&quot;119.96134020618555\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;ExiVLY52rhQOB2LcU4Q_-11\&quot; value=\&quot;Amazon S3\&quot; style=\&quot;sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;strokeColor=#ffffff;fillColor=#232F3E;dashed=0;verticalLabelPosition=middle;verticalAlign=bottom;align=center;html=1;whiteSpace=wrap;fontSize=10;fontStyle=1;spacing=3;shape=mxgraph.aws4.productIcon;prIcon=mxgraph.aws4.s3;\&quot; vertex=\&quot;1\&quot; parent=\&quot;ExiVLY52rhQOB2LcU4Q_-13\&quot;&gt;\n          &lt;mxGeometry x=\&quot;44.73684210526316\&quot; y=\&quot;13.841693100713718\&quot; width=\&quot;71.57894736842105\&quot; height=\&quot;92.27795400475812\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;aws-e4\&quot; value=\&quot;frontend/api\&quot; style=\&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;exitX=1;exitY=0.5;entryX=0;entryY=0.5;entryDx=0;entryDy=0;exitDx=0;exitDy=0;\&quot; parent=\&quot;1\&quot; source=\&quot;aws-ui\&quot; target=\&quot;ExiVLY52rhQOB2LcU4Q_-9\&quot; edge=\&quot;1\&quot;&gt;\n          &lt;mxGeometry relative=\&quot;1\&quot; as=\&quot;geometry\&quot;&gt;\n            &lt;mxPoint x=\&quot;659.9999999999995\&quot; y=\&quot;592.7319587628863\&quot; as=\&quot;sourcePoint\&quot; /&gt;\n          &lt;/mxGeometry&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;ExiVLY52rhQOB2LcU4Q_-21\&quot; style=\&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;\&quot; edge=\&quot;1\&quot; parent=\&quot;1\&quot; source=\&quot;aws-ui\&quot; target=\&quot;aws-id\&quot;&gt;\n          &lt;mxGeometry relative=\&quot;1\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;ExiVLY52rhQOB2LcU4Q_-22\&quot; value=\&quot;OIDC/PKCE\&quot; style=\&quot;edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];\&quot; vertex=\&quot;1\&quot; connectable=\&quot;0\&quot; parent=\&quot;ExiVLY52rhQOB2LcU4Q_-21\&quot;&gt;\n          &lt;mxGeometry x=\&quot;0.205\&quot; y=\&quot;-1\&quot; relative=\&quot;1\&quot; as=\&quot;geometry\&quot;&gt;\n            &lt;mxPoint as=\&quot;offset\&quot; /&gt;\n          &lt;/mxGeometry&gt;\n        &lt;/mxCell&gt;\n      &lt;/root&gt;\n    &lt;/mxGraphModel&gt;\n  &quot;}'></div></section>
+<section class="drawio-card"><h3>CI-CD DevOps</h3><div class="mxgraph" data-mxgraph='{&quot;highlight&quot;: &quot;#2E74B5&quot;, &quot;nav&quot;: true, &quot;resize&quot;: true, &quot;toolbar&quot;: &quot;zoom layers lightbox&quot;, &quot;edit&quot;: &quot;_blank&quot;, &quot;xml&quot;: &quot;&lt;mxGraphModel dx=\&quot;1426\&quot; dy=\&quot;743\&quot; grid=\&quot;1\&quot; gridSize=\&quot;10\&quot; guides=\&quot;1\&quot; tooltips=\&quot;1\&quot; connect=\&quot;1\&quot; arrows=\&quot;1\&quot; fold=\&quot;1\&quot; page=\&quot;1\&quot; pageScale=\&quot;1\&quot; pageWidth=\&quot;1400\&quot; pageHeight=\&quot;900\&quot; math=\&quot;0\&quot; shadow=\&quot;0\&quot;&gt;\n      &lt;root&gt;\n        &lt;mxCell id=\&quot;0\&quot; /&gt;\n        &lt;mxCell id=\&quot;1\&quot; parent=\&quot;0\&quot; /&gt;\n        &lt;mxCell id=\&quot;ci-title\&quot; value=\&quot;TelcoX - Flujo CI/CD DevOps Implementado y Extension DevSecOps\&quot; style=\&quot;text;html=1;strokeColor=none;fillColor=none;fontSize=22;fontStyle=1;align=center;verticalAlign=middle;\&quot; parent=\&quot;1\&quot; vertex=\&quot;1\&quot;&gt;\n          &lt;mxGeometry x=\&quot;280\&quot; y=\&quot;20\&quot; width=\&quot;840\&quot; height=\&quot;40\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;ci-source\&quot; value=\&quot;Repositorio GitHub&amp;#10;push a main&amp;#10;o workflow_dispatch\&quot; style=\&quot;shape=mxgraph.basic.document;whiteSpace=wrap;html=1;boundedLbl=1;fillColor=#24292f;strokeColor=#000000;fontColor=#ffffff;fontStyle=1;\&quot; parent=\&quot;1\&quot; vertex=\&quot;1\&quot;&gt;\n          &lt;mxGeometry x=\&quot;55\&quot; y=\&quot;160\&quot; width=\&quot;165\&quot; height=\&quot;100\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;ci-workflows\&quot; value=\&quot;GitHub Actions&amp;#10;microservices-ci.yml&amp;#10;ui-ci.yml&amp;#10;audit-service-ci.yml&amp;#10;external-services-ci.yml\&quot; style=\&quot;shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;fillColor=#0969da;strokeColor=#054da7;fontColor=#ffffff;fontStyle=1;\&quot; parent=\&quot;1\&quot; vertex=\&quot;1\&quot;&gt;\n          &lt;mxGeometry x=\&quot;285\&quot; y=\&quot;140\&quot; width=\&quot;215\&quot; height=\&quot;140\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;ci-changes\&quot; value=\&quot;Deploy Cambio\&quot; style=\&quot;rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;\&quot; parent=\&quot;1\&quot; vertex=\&quot;1\&quot;&gt;\n          &lt;mxGeometry x=\&quot;560\&quot; y=\&quot;147.5\&quot; width=\&quot;150\&quot; height=\&quot;125\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;ci-registry\&quot; value=\&quot;Container Registry&amp;#10;ghcr.io&amp;#10;GITHUB_SHA + latest\&quot; style=\&quot;shape=mxgraph.azure.container_registry;html=1;verticalLabelPosition=bottom;verticalAlign=top;align=center;fillColor=#ffffff;strokeColor=#107c10;fontStyle=1;\&quot; parent=\&quot;1\&quot; vertex=\&quot;1\&quot;&gt;\n          &lt;mxGeometry x=\&quot;1145\&quot; y=\&quot;145\&quot; width=\&quot;180\&quot; height=\&quot;130\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;ci-runner\&quot; value=\&quot;Runner self-hosted&amp;#10;kubectl get nodes&amp;#10;helm list\&quot; style=\&quot;shape=mxgraph.cisco.servers.host;html=1;verticalLabelPosition=bottom;verticalAlign=top;align=center;fillColor=#eeeeee;strokeColor=#666666;fontStyle=1;\&quot; parent=\&quot;1\&quot; vertex=\&quot;1\&quot;&gt;\n          &lt;mxGeometry x=\&quot;302.5\&quot; y=\&quot;430\&quot; width=\&quot;180\&quot; height=\&quot;105\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;ci-helm\&quot; value=\&quot;Helm Deploy&amp;#10;upgrade --install&amp;#10;telcox / external-sim\&quot; style=\&quot;shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=1;fixedSize=1;fillColor=#0f1689;strokeColor=#090d4d;fontColor=#ffffff;fontStyle=1;\&quot; parent=\&quot;1\&quot; vertex=\&quot;1\&quot;&gt;\n          &lt;mxGeometry x=\&quot;545\&quot; y=\&quot;420\&quot; width=\&quot;210\&quot; height=\&quot;125\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;ci-k8s\&quot; value=\&quot;Kubernetes Cluster&amp;#10;rollout status&amp;#10;microservicios, UI, auditoria&amp;#10;servicios externos simulados\&quot; style=\&quot;shape=mxgraph.kubernetes.k8s;html=1;verticalLabelPosition=bottom;verticalAlign=top;align=center;fillColor=#326ce5;strokeColor=#1d4fb8;fontColor=#000000;fontStyle=1;\&quot; parent=\&quot;1\&quot; vertex=\&quot;1\&quot;&gt;\n          &lt;mxGeometry x=\&quot;910\&quot; y=\&quot;432.5\&quot; width=\&quot;110\&quot; height=\&quot;100\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;ci-diagnostics\&quot; value=\&quot;Diagnostico ante falla&amp;#10;kubectl get&amp;#10;kubectl describe&amp;#10;kubectl logs\&quot; style=\&quot;shape=mxgraph.basic.magnifying_glass;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontStyle=1;\&quot; parent=\&quot;1\&quot; vertex=\&quot;1\&quot;&gt;\n          &lt;mxGeometry x=\&quot;1160\&quot; y=\&quot;437.5\&quot; width=\&quot;150\&quot; height=\&quot;90\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;ci-e1\&quot; style=\&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;strokeWidth=2;\&quot; parent=\&quot;1\&quot; source=\&quot;ci-source\&quot; target=\&quot;ci-workflows\&quot; edge=\&quot;1\&quot;&gt;\n          &lt;mxGeometry relative=\&quot;1\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;ci-e2\&quot; style=\&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;strokeWidth=2;\&quot; parent=\&quot;1\&quot; source=\&quot;ci-workflows\&quot; target=\&quot;ci-changes\&quot; edge=\&quot;1\&quot;&gt;\n          &lt;mxGeometry relative=\&quot;1\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;ci-e3\&quot; style=\&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;strokeWidth=2;\&quot; parent=\&quot;1\&quot; source=\&quot;ci-changes\&quot; edge=\&quot;1\&quot;&gt;\n          &lt;mxGeometry relative=\&quot;1\&quot; as=\&quot;geometry\&quot;&gt;\n            &lt;mxPoint x=\&quot;770\&quot; y=\&quot;210\&quot; as=\&quot;targetPoint\&quot; /&gt;\n          &lt;/mxGeometry&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;ci-e4\&quot; value=\&quot;push imagenes\&quot; style=\&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;strokeWidth=2;\&quot; parent=\&quot;1\&quot; target=\&quot;ci-registry\&quot; edge=\&quot;1\&quot;&gt;\n          &lt;mxGeometry relative=\&quot;1\&quot; as=\&quot;geometry\&quot;&gt;\n            &lt;mxPoint x=\&quot;960\&quot; y=\&quot;210\&quot; as=\&quot;sourcePoint\&quot; /&gt;\n          &lt;/mxGeometry&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;ci-e6\&quot; style=\&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;\&quot; parent=\&quot;1\&quot; source=\&quot;ci-workflows\&quot; target=\&quot;ci-runner\&quot; edge=\&quot;1\&quot;&gt;\n          &lt;mxGeometry relative=\&quot;1\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;ci-e7\&quot; style=\&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;strokeWidth=2;\&quot; parent=\&quot;1\&quot; source=\&quot;ci-runner\&quot; target=\&quot;ci-helm\&quot; edge=\&quot;1\&quot;&gt;\n          &lt;mxGeometry relative=\&quot;1\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;ci-e8\&quot; value=\&quot;deploy\&quot; style=\&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;strokeWidth=2;\&quot; parent=\&quot;1\&quot; source=\&quot;ci-helm\&quot; target=\&quot;ci-k8s\&quot; edge=\&quot;1\&quot;&gt;\n          &lt;mxGeometry relative=\&quot;1\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;ci-e9\&quot; value=\&quot;si falla\&quot; style=\&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;dashed=1;\&quot; parent=\&quot;1\&quot; source=\&quot;ci-k8s\&quot; target=\&quot;ci-diagnostics\&quot; edge=\&quot;1\&quot;&gt;\n          &lt;mxGeometry relative=\&quot;1\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;ZkrofXXxW_l5YoV2WdVP-6\&quot; value=\&quot;\&quot; style=\&quot;rounded=1;whiteSpace=wrap;html=1;fillColor=light-dark(#FFFFFF,#99CCFF);fontColor=none;labelBorderColor=none;labelBackgroundColor=none;noLabel=1;\&quot; vertex=\&quot;1\&quot; parent=\&quot;1\&quot;&gt;\n          &lt;mxGeometry x=\&quot;770\&quot; y=\&quot;165\&quot; width=\&quot;190\&quot; height=\&quot;90\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;ZkrofXXxW_l5YoV2WdVP-5\&quot; value=\&quot;\&quot; style=\&quot;image;sketch=0;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/mscae/Docker.svg;\&quot; vertex=\&quot;1\&quot; parent=\&quot;1\&quot;&gt;\n          &lt;mxGeometry x=\&quot;840\&quot; y=\&quot;189.5\&quot; width=\&quot;50\&quot; height=\&quot;41\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;ZkrofXXxW_l5YoV2WdVP-8\&quot; value=\&quot;Build and Push\&quot; style=\&quot;text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;\&quot; vertex=\&quot;1\&quot; parent=\&quot;1\&quot;&gt;\n          &lt;mxGeometry x=\&quot;780\&quot; y=\&quot;250\&quot; width=\&quot;170\&quot; height=\&quot;50\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n      &lt;/root&gt;\n    &lt;/mxGraphModel&gt;\n  &quot;}'></div></section>
+<section class="drawio-card"><h3>Datos MS</h3><div class="mxgraph" data-mxgraph='{&quot;highlight&quot;: &quot;#2E74B5&quot;, &quot;nav&quot;: true, &quot;resize&quot;: true, &quot;toolbar&quot;: &quot;zoom layers lightbox&quot;, &quot;edit&quot;: &quot;_blank&quot;, &quot;xml&quot;: &quot;&lt;mxGraphModel dx=\&quot;1422\&quot; dy=\&quot;794\&quot; grid=\&quot;1\&quot; gridSize=\&quot;10\&quot; guides=\&quot;1\&quot; tooltips=\&quot;1\&quot; connect=\&quot;1\&quot; arrows=\&quot;1\&quot; fold=\&quot;1\&quot; page=\&quot;1\&quot; pageScale=\&quot;1\&quot; pageWidth=\&quot;1600\&quot; pageHeight=\&quot;1100\&quot; math=\&quot;0\&quot; shadow=\&quot;0\&quot;&gt;\n      &lt;root&gt;\n        &lt;mxCell id=\&quot;0\&quot; /&gt;\n        &lt;mxCell id=\&quot;1\&quot; parent=\&quot;0\&quot; /&gt;\n        &lt;mxCell id=\&quot;db-title\&quot; value=\&quot;TelcoX - Modelo Logico De Datos Por Microservicio\&quot; style=\&quot;text;html=1;strokeColor=none;fillColor=none;fontSize=22;fontStyle=1;align=center;verticalAlign=middle;\&quot; vertex=\&quot;1\&quot; parent=\&quot;1\&quot;&gt;\n          &lt;mxGeometry x=\&quot;420\&quot; y=\&quot;25\&quot; width=\&quot;760\&quot; height=\&quot;40\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;db-note\&quot; value=\&quot;Estado actual: repositorios en memoria para demo/lab; PostgreSQL y MongoDB disponibles en Kubernetes; audit_events puede persistir en PostgreSQL con AUDIT_BACKEND=postgres.\&quot; style=\&quot;rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;\&quot; vertex=\&quot;1\&quot; parent=\&quot;1\&quot;&gt;\n          &lt;mxGeometry x=\&quot;170\&quot; y=\&quot;85\&quot; width=\&quot;1260\&quot; height=\&quot;55\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;db-customers\&quot; value=\&quot;customer_service&amp;#10;CUSTOMERS&amp;#10;----------------&amp;#10;id PK&amp;#10;document_id&amp;#10;full_name&amp;#10;email&amp;#10;phone&amp;#10;status&amp;#10;segment&amp;#10;identity_status&amp;#10;identity_provider&amp;#10;created_at / updated_at\&quot; style=\&quot;swimlane;whiteSpace=wrap;html=1;rounded=1;startSize=28;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;\&quot; vertex=\&quot;1\&quot; parent=\&quot;1\&quot;&gt;\n          &lt;mxGeometry x=\&quot;60\&quot; y=\&quot;190\&quot; width=\&quot;210\&quot; height=\&quot;245\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;db-products\&quot; value=\&quot;catalog_service&amp;#10;PRODUCTS&amp;#10;----------------&amp;#10;id PK&amp;#10;name&amp;#10;type&amp;#10;monthly_price&amp;#10;currency&amp;#10;features JSON&amp;#10;created_at / updated_at\&quot; style=\&quot;swimlane;whiteSpace=wrap;html=1;rounded=1;startSize=28;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;\&quot; vertex=\&quot;1\&quot; parent=\&quot;1\&quot;&gt;\n          &lt;mxGeometry x=\&quot;60\&quot; y=\&quot;500\&quot; width=\&quot;210\&quot; height=\&quot;205\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;db-onboarding\&quot; value=\&quot;onboarding_service&amp;#10;ONBOARDING_CASES&amp;#10;----------------&amp;#10;id PK&amp;#10;document_id&amp;#10;full_name&amp;#10;email / phone&amp;#10;document_type&amp;#10;consent_accepted&amp;#10;document_check&amp;#10;face_match&amp;#10;liveness_check&amp;#10;risk_level / status&amp;#10;kyc_verification_id&amp;#10;created_at / updated_at\&quot; style=\&quot;swimlane;whiteSpace=wrap;html=1;rounded=1;startSize=28;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1;\&quot; vertex=\&quot;1\&quot; parent=\&quot;1\&quot;&gt;\n          &lt;mxGeometry x=\&quot;60\&quot; y=\&quot;765\&quot; width=\&quot;250\&quot; height=\&quot;270\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;db-consents\&quot; value=\&quot;CONSENTS&amp;#10;----------------&amp;#10;id PK&amp;#10;user_id FK&amp;#10;accepted&amp;#10;consent_version&amp;#10;consent_scope JSON&amp;#10;accepted_at&amp;#10;source\&quot; style=\&quot;swimlane;whiteSpace=wrap;html=1;rounded=1;startSize=28;fillColor=#e1d5e7;strokeColor=#9673a6;\&quot; vertex=\&quot;1\&quot; parent=\&quot;1\&quot;&gt;\n          &lt;mxGeometry x=\&quot;360\&quot; y=\&quot;800\&quot; width=\&quot;205\&quot; height=\&quot;190\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;db-active\&quot; value=\&quot;service_status_service&amp;#10;ACTIVE_SERVICES&amp;#10;----------------&amp;#10;id PK&amp;#10;customer_id FK&amp;#10;product_id FK&amp;#10;status&amp;#10;data_used_gb&amp;#10;data_limit_gb&amp;#10;balance&amp;#10;created_at / updated_at\&quot; style=\&quot;swimlane;whiteSpace=wrap;html=1;rounded=1;startSize=28;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;\&quot; vertex=\&quot;1\&quot; parent=\&quot;1\&quot;&gt;\n          &lt;mxGeometry x=\&quot;390\&quot; y=\&quot;210\&quot; width=\&quot;230\&quot; height=\&quot;225\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;db-orders\&quot; value=\&quot;provisioning_service&amp;#10;PROVISIONING_ORDERS&amp;#10;----------------&amp;#10;id PK&amp;#10;customer_id FK&amp;#10;product_id FK&amp;#10;operation&amp;#10;status&amp;#10;channel&amp;#10;network_reference_id&amp;#10;network_node&amp;#10;external_system&amp;#10;created_at / updated_at\&quot; style=\&quot;swimlane;whiteSpace=wrap;html=1;rounded=1;startSize=28;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;\&quot; vertex=\&quot;1\&quot; parent=\&quot;1\&quot;&gt;\n          &lt;mxGeometry x=\&quot;390\&quot; y=\&quot;495\&quot; width=\&quot;245\&quot; height=\&quot;255\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;db-invoices\&quot; value=\&quot;billing_service&amp;#10;INVOICES&amp;#10;----------------&amp;#10;id PK&amp;#10;customer_id FK&amp;#10;amount&amp;#10;currency&amp;#10;status&amp;#10;due_date&amp;#10;sri_status&amp;#10;sri_access_key&amp;#10;external_system&amp;#10;created_at / updated_at\&quot; style=\&quot;swimlane;whiteSpace=wrap;html=1;rounded=1;startSize=28;fillColor=#ffe6cc;strokeColor=#d79b00;fontStyle=1;\&quot; vertex=\&quot;1\&quot; parent=\&quot;1\&quot;&gt;\n          &lt;mxGeometry x=\&quot;740\&quot; y=\&quot;190\&quot; width=\&quot;230\&quot; height=\&quot;245\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;db-payments\&quot; value=\&quot;payment_service&amp;#10;PAYMENTS&amp;#10;----------------&amp;#10;id PK&amp;#10;customer_id FK&amp;#10;invoice_id FK&amp;#10;amount&amp;#10;currency&amp;#10;method&amp;#10;status&amp;#10;gateway_reference&amp;#10;gateway_transaction_id&amp;#10;external_system&amp;#10;created_at / updated_at\&quot; style=\&quot;swimlane;whiteSpace=wrap;html=1;rounded=1;startSize=28;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;\&quot; vertex=\&quot;1\&quot; parent=\&quot;1\&quot;&gt;\n          &lt;mxGeometry x=\&quot;1080\&quot; y=\&quot;190\&quot; width=\&quot;245\&quot; height=\&quot;255\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;db-notifications\&quot; value=\&quot;notification_service&amp;#10;NOTIFICATIONS&amp;#10;----------------&amp;#10;id PK&amp;#10;customer_id FK&amp;#10;channel&amp;#10;event_type&amp;#10;message&amp;#10;status&amp;#10;attempts&amp;#10;gateway_message_id&amp;#10;external_system&amp;#10;created_at / updated_at\&quot; style=\&quot;swimlane;whiteSpace=wrap;html=1;rounded=1;startSize=28;fillColor=#e6d0de;strokeColor=#996185;fontStyle=1;\&quot; vertex=\&quot;1\&quot; parent=\&quot;1\&quot;&gt;\n          &lt;mxGeometry x=\&quot;740\&quot; y=\&quot;505\&quot; width=\&quot;245\&quot; height=\&quot;245\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;db-audit\&quot; value=\&quot;audit_service / audit backend&amp;#10;AUDIT_EVENTS&amp;#10;----------------&amp;#10;id PK&amp;#10;service&amp;#10;action&amp;#10;resource_type&amp;#10;resource_id&amp;#10;status&amp;#10;payload_in JSONB&amp;#10;payload_out JSONB&amp;#10;timestamp&amp;#10;duration_ms&amp;#10;error_message&amp;#10;metadata JSONB\&quot; style=\&quot;swimlane;whiteSpace=wrap;html=1;rounded=1;startSize=28;fillColor=#f4cccc;strokeColor=#cc0000;fontStyle=1;\&quot; vertex=\&quot;1\&quot; parent=\&quot;1\&quot;&gt;\n          &lt;mxGeometry x=\&quot;1080\&quot; y=\&quot;505\&quot; width=\&quot;250\&quot; height=\&quot;280\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;db-cache\&quot; value=\&quot;customer_service&amp;#10;TTL CACHE&amp;#10;----------------&amp;#10;key&amp;#10;value&amp;#10;ttl_seconds&amp;#10;created_at&amp;#10;last_accessed&amp;#10;hit_count\&quot; style=\&quot;swimlane;whiteSpace=wrap;html=1;rounded=1;startSize=28;fillColor=#eeeeee;strokeColor=#666666;fontStyle=1;dashed=1;\&quot; vertex=\&quot;1\&quot; parent=\&quot;1\&quot;&gt;\n          &lt;mxGeometry x=\&quot;1365\&quot; y=\&quot;210\&quot; width=\&quot;180\&quot; height=\&quot;190\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;db-ext\&quot; value=\&quot;Servicios externos simulados&amp;#10;----------------&amp;#10;SRI authorizations&amp;#10;Payment transactions&amp;#10;Network OSS refs&amp;#10;KYC verifications&amp;#10;Notification messages\&quot; style=\&quot;swimlane;whiteSpace=wrap;html=1;rounded=1;startSize=28;fillColor=#f5f5f5;strokeColor=#666666;fontStyle=1;\&quot; vertex=\&quot;1\&quot; parent=\&quot;1\&quot;&gt;\n          &lt;mxGeometry x=\&quot;1365\&quot; y=\&quot;500\&quot; width=\&quot;190\&quot; height=\&quot;210\&quot; as=\&quot;geometry\&quot; /&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;db-e1\&quot; value=\&quot;customer_id\&quot; style=\&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;strokeWidth=2;exitX=1;exitY=0.25;entryX=0;entryY=0.25;\&quot; edge=\&quot;1\&quot; parent=\&quot;1\&quot; source=\&quot;db-customers\&quot; target=\&quot;db-active\&quot;&gt;&lt;mxGeometry relative=\&quot;1\&quot; as=\&quot;geometry\&quot; /&gt;&lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;db-e2\&quot; value=\&quot;product_id\&quot; style=\&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;strokeWidth=2;exitX=1;exitY=0.25;entryX=0;entryY=0.75;\&quot; edge=\&quot;1\&quot; parent=\&quot;1\&quot; source=\&quot;db-products\&quot; target=\&quot;db-active\&quot;&gt;&lt;mxGeometry relative=\&quot;1\&quot; as=\&quot;geometry\&quot;&gt;&lt;Array as=\&quot;points\&quot;&gt;&lt;mxPoint x=\&quot;330\&quot; y=\&quot;605\&quot; /&gt;&lt;mxPoint x=\&quot;330\&quot; y=\&quot;380\&quot; /&gt;&lt;/Array&gt;&lt;/mxGeometry&gt;&lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;db-e3\&quot; value=\&quot;customer_id\&quot; style=\&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;exitX=1;exitY=0.55;entryX=0;entryY=0.25;\&quot; edge=\&quot;1\&quot; parent=\&quot;1\&quot; source=\&quot;db-customers\&quot; target=\&quot;db-orders\&quot;&gt;&lt;mxGeometry relative=\&quot;1\&quot; as=\&quot;geometry\&quot;&gt;&lt;Array as=\&quot;points\&quot;&gt;&lt;mxPoint x=\&quot;330\&quot; y=\&quot;325\&quot; /&gt;&lt;mxPoint x=\&quot;330\&quot; y=\&quot;560\&quot; /&gt;&lt;/Array&gt;&lt;/mxGeometry&gt;&lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;db-e4\&quot; value=\&quot;product_id\&quot; style=\&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;exitX=1;exitY=0.65;entryX=0;entryY=0.65;\&quot; edge=\&quot;1\&quot; parent=\&quot;1\&quot; source=\&quot;db-products\&quot; target=\&quot;db-orders\&quot;&gt;&lt;mxGeometry relative=\&quot;1\&quot; as=\&quot;geometry\&quot; /&gt;&lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;db-e5\&quot; value=\&quot;customer_id\&quot; style=\&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;strokeWidth=2;exitX=1;exitY=0.35;entryX=0;entryY=0.35;\&quot; edge=\&quot;1\&quot; parent=\&quot;1\&quot; source=\&quot;db-customers\&quot; target=\&quot;db-invoices\&quot;&gt;&lt;mxGeometry relative=\&quot;1\&quot; as=\&quot;geometry\&quot;&gt;&lt;Array as=\&quot;points\&quot;&gt;&lt;mxPoint x=\&quot;675\&quot; y=\&quot;275\&quot; /&gt;&lt;/Array&gt;&lt;/mxGeometry&gt;&lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;db-e6\&quot; value=\&quot;invoice_id\&quot; style=\&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;strokeWidth=2;exitX=1;exitY=0.45;entryX=0;entryY=0.45;\&quot; edge=\&quot;1\&quot; parent=\&quot;1\&quot; source=\&quot;db-invoices\&quot; target=\&quot;db-payments\&quot;&gt;&lt;mxGeometry relative=\&quot;1\&quot; as=\&quot;geometry\&quot; /&gt;&lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;db-e7\&quot; value=\&quot;customer_id\&quot; style=\&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;exitX=1;exitY=0.45;entryX=0;entryY=0.25;\&quot; edge=\&quot;1\&quot; parent=\&quot;1\&quot; source=\&quot;db-customers\&quot; target=\&quot;db-payments\&quot;&gt;&lt;mxGeometry relative=\&quot;1\&quot; as=\&quot;geometry\&quot;&gt;&lt;Array as=\&quot;points\&quot;&gt;&lt;mxPoint x=\&quot;1015\&quot; y=\&quot;300\&quot; /&gt;&lt;/Array&gt;&lt;/mxGeometry&gt;&lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;db-e8\&quot; value=\&quot;customer_id\&quot; style=\&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;exitX=1;exitY=0.7;entryX=0;entryY=0.35;\&quot; edge=\&quot;1\&quot; parent=\&quot;1\&quot; source=\&quot;db-customers\&quot; target=\&quot;db-notifications\&quot;&gt;&lt;mxGeometry relative=\&quot;1\&quot; as=\&quot;geometry\&quot;&gt;&lt;Array as=\&quot;points\&quot;&gt;&lt;mxPoint x=\&quot;690\&quot; y=\&quot;360\&quot; /&gt;&lt;mxPoint x=\&quot;690\&quot; y=\&quot;590\&quot; /&gt;&lt;/Array&gt;&lt;/mxGeometry&gt;&lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;db-e9\&quot; value=\&quot;user_id\&quot; style=\&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;exitX=1;exitY=0.8;entryX=0;entryY=0.5;\&quot; edge=\&quot;1\&quot; parent=\&quot;1\&quot; source=\&quot;db-customers\&quot; target=\&quot;db-consents\&quot;&gt;&lt;mxGeometry relative=\&quot;1\&quot; as=\&quot;geometry\&quot;&gt;&lt;Array as=\&quot;points\&quot;&gt;&lt;mxPoint x=\&quot;330\&quot; y=\&quot;390\&quot; /&gt;&lt;mxPoint x=\&quot;330\&quot; y=\&quot;895\&quot; /&gt;&lt;/Array&gt;&lt;/mxGeometry&gt;&lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;db-e10\&quot; value=\&quot;resource_id\&quot; style=\&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;dashed=1;strokeColor=#cc0000;exitX=1;exitY=0.35;entryX=0;entryY=0.65;\&quot; edge=\&quot;1\&quot; parent=\&quot;1\&quot; source=\&quot;db-onboarding\&quot; target=\&quot;db-audit\&quot;&gt;&lt;mxGeometry relative=\&quot;1\&quot; as=\&quot;geometry\&quot;&gt;&lt;Array as=\&quot;points\&quot;&gt;&lt;mxPoint x=\&quot;1030\&quot; y=\&quot;860\&quot; /&gt;&lt;/Array&gt;&lt;/mxGeometry&gt;&lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;db-e11\&quot; value=\&quot;cache-aside\&quot; style=\&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;dashed=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;\&quot; edge=\&quot;1\&quot; parent=\&quot;1\&quot; source=\&quot;db-customers\&quot; target=\&quot;db-cache\&quot;&gt;&lt;mxGeometry relative=\&quot;1\&quot; as=\&quot;geometry\&quot;&gt;&lt;Array as=\&quot;points\&quot;&gt;&lt;mxPoint x=\&quot;1340\&quot; y=\&quot;315\&quot; /&gt;&lt;/Array&gt;&lt;/mxGeometry&gt;&lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;db-e12\&quot; value=\&quot;referencias externas\&quot; style=\&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;dashed=1;exitX=1;exitY=0.55;entryX=0;entryY=0.5;\&quot; edge=\&quot;1\&quot; parent=\&quot;1\&quot; source=\&quot;db-orders\&quot; target=\&quot;db-ext\&quot;&gt;&lt;mxGeometry relative=\&quot;1\&quot; as=\&quot;geometry\&quot;&gt;&lt;Array as=\&quot;points\&quot;&gt;&lt;mxPoint x=\&quot;700\&quot; y=\&quot;635\&quot; /&gt;&lt;/Array&gt;&lt;/mxGeometry&gt;&lt;/mxCell&gt;\n        &lt;mxCell id=\&quot;db-e13\&quot; value=\&quot;SRI / pagos / notificaciones / KYC\&quot; style=\&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;dashed=1;exitX=1;exitY=0.65;entryX=0;entryY=0.45;\&quot; edge=\&quot;1\&quot; parent=\&quot;1\&quot; source=\&quot;db-payments\&quot; target=\&quot;db-ext\&quot;&gt;&lt;mxGeometry relative=\&quot;1\&quot; as=\&quot;geometry\&quot;&gt;&lt;Array as=\&quot;points\&quot;&gt;&lt;mxPoint x=\&quot;1350\&quot; y=\&quot;355\&quot; /&gt;&lt;mxPoint x=\&quot;1350\&quot; y=\&quot;595\&quot; /&gt;&lt;/Array&gt;&lt;/mxGeometry&gt;&lt;/mxCell&gt;\n      &lt;/root&gt;\n    &lt;/mxGraphModel&gt;\n  &quot;}'></div></section>
+      </section>
+    </main>
+  </div>
+  <footer>Generado automaticamente desde ARCHITECTURE_ONPREM_AWS.md y TELCOX_ARCHITECTURE.drawio.</footer>
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: "default",
+      securityLevel: "loose",
+      flowchart: { useMaxWidth: true, htmlLabels: true },
+      er: { useMaxWidth: true }
+    });
+  </script>
+</body>
+</html>

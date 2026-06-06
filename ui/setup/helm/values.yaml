@@ -25,6 +25,20 @@ ingress:
     traefik.ingress.kubernetes.io/router.priority: "1"
     traefik.ingress.kubernetes.io/router.tls: "true"
 
+manuals:
+  enabled: true
+  path: /manuales
+  auth:
+    enabled: true
+    existingSecret: telcox-manuals-basic-auth
+    middlewareName: telcox-manuals-basic-auth
+    realm: TelcoX Manuales
+  ingress:
+    annotations:
+      traefik.ingress.kubernetes.io/router.entrypoints: websecure
+      traefik.ingress.kubernetes.io/router.priority: "100"
+      traefik.ingress.kubernetes.io/router.tls: "true"
+
 resources:
   requests:
     cpu: 50m

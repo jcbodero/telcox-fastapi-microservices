@@ -74,6 +74,7 @@ export default function OnboardingGate({ user, getAccessToken, onComplete, logou
   const [camError, setCamError] = useState(false)
   const [progress, setProgress] = useState('')
   const [verifyResult, setVerifyResult] = useState(null)
+  const [enrollError, setEnrollError] = useState('')
   const [consentAccepted, setConsentAccepted] = useState(false)
   const [consentError, setConsentError] = useState('')
   const [policyModalOpen, setPolicyModalOpen] = useState(true)
@@ -255,6 +256,7 @@ export default function OnboardingGate({ user, getAccessToken, onComplete, logou
   const enrollMethods = async () => {
     if (!verifyResult) return
     setEnrolling(true)
+    setEnrollError('')
     try {
       const token = await getAccessToken()
       if (!token) {
@@ -265,13 +267,13 @@ export default function OnboardingGate({ user, getAccessToken, onComplete, logou
       await postJsonDirect(
         'onboarding',
         `/onboarding-service/onboarding-cases/${verifyResult.id}/auth-methods`,
-        { auth_methods: selectedMethods },
+        { auth_methods: selectedMethods, case_data: verifyResult },
         token,
       )
       onComplete()
     } catch (error) {
       setEnrolling(false)
-      alert(`Error habilitando metodos: ${error.message}`)
+      setEnrollError(`Error habilitando metodos: ${error.message}`)
     }
   }
 
@@ -467,6 +469,11 @@ export default function OnboardingGate({ user, getAccessToken, onComplete, logou
               </div>
               <h2 className="text-lg font-bold text-slate-900">Configurar acceso biometrico</h2>
               <p className="text-xs text-slate-500">Elige como quieres ingresar al sistema en el futuro.</p>
+              {enrollError && (
+                <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-semibold text-rose-700">
+                  {enrollError}
+                </div>
+              )}
               <div className="space-y-2">
                 {[
                   { key: 'password', label: 'Contrasena tradicional', desc: 'Ingreso con usuario y contrasena segura.' },

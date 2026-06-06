@@ -28,6 +28,7 @@ const handleResponse = async (res) => {
     const errorText = await res.text()
     throw new Error(`${res.status} ${res.statusText}: ${errorText}`)
   }
+  if (res.status === 204) return null
   return res.json()
 }
 
@@ -94,11 +95,27 @@ export const postJsonDirect = async (service, path, payload, token = null) => {
   return response
 }
 
+export const putJson = async (service, path, payload, token = null) => {
+  const response = await fetchJson(buildUrl(service, path), {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ data: payload }),
+  }, token)
+  return response
+}
+
 export const patchJson = async (service, path, payload, token = null) => {
   const response = await fetchJson(buildUrl(service, path), {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ data: payload }),
+  }, token)
+  return response
+}
+
+export const deleteJson = async (service, path, token = null) => {
+  const response = await fetchJson(buildUrl(service, path), {
+    method: 'DELETE',
   }, token)
   return response
 }

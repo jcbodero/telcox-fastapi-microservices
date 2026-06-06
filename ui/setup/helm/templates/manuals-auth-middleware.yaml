@@ -1,0 +1,13 @@
+{{- if and .Values.manuals.enabled .Values.manuals.auth.enabled }}
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: {{ .Values.manuals.auth.middlewareName }}
+  labels:
+    app.kubernetes.io/name: {{ .Chart.Name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  basicAuth:
+    secret: {{ .Values.manuals.auth.existingSecret }}
+    realm: {{ .Values.manuals.auth.realm | quote }}
+{{- end }}

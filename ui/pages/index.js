@@ -6,8 +6,9 @@ import CatalogSection from '../components/CatalogSection'
 import BillingSection from '../components/BillingSection'
 import ExternalSystemsSection from '../components/ExternalSystemsSection'
 import OnboardingGate from '../components/OnboardingGate'
+import LoadingOverlay from '../components/LoadingOverlay'
 import { useAuth } from '../lib/AuthContext'
-import { apiMap, loadAllData, postJson, patchJson, loadExternalSystemsData } from '../lib/serviceApi'
+import { apiMap, loadAllData, postJson, putJson, patchJson, deleteJson, loadExternalSystemsData } from '../lib/serviceApi'
 
 const tabs = ['dashboard', 'catalog', 'billing', 'external']
 
@@ -154,6 +155,66 @@ export default function Home() {
     }
   }
 
+  const createCatalogProduct = async (product) => {
+    setIsLoading(true)
+    try {
+      const data = await postJson('catalog', apiMap.catalog, product, await getAccessToken())
+      appendLog(`Producto creado: ${data.name || data.id}`)
+      await loadData()
+      return data
+    } catch (error) {
+      appendLog(`Producto no creado: ${error.message}`)
+      throw error
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const updateCatalogProduct = async (productId, product) => {
+    setIsLoading(true)
+    try {
+      const data = await putJson('catalog', `${apiMap.catalog}/${productId}`, product, await getAccessToken())
+      appendLog(`Producto actualizado: ${data.name || data.id}`)
+      await loadData()
+      return data
+    } catch (error) {
+      appendLog(`Producto no actualizado: ${error.message}`)
+      throw error
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const toggleCatalogProduct = async (product) => {
+    setIsLoading(true)
+    try {
+      const nextStatus = product.status === 'inactive' ? 'active' : 'inactive'
+      const data = await patchJson('catalog', `${apiMap.catalog}/${product.id}`, { status: nextStatus }, await getAccessToken())
+      appendLog(`${nextStatus === 'active' ? 'Producto activado' : 'Producto pausado'}: ${data.name || data.id}`)
+      await loadData()
+      return data
+    } catch (error) {
+      appendLog(`Estado no actualizado: ${error.message}`)
+      throw error
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const deleteCatalogProduct = async (product) => {
+    setIsLoading(true)
+    try {
+      await deleteJson('catalog', `${apiMap.catalog}/${product.id}`, await getAccessToken())
+      appendLog(`Producto eliminado: ${product.name || product.id}`)
+      await loadData()
+    } catch (error) {
+      appendLog(`Producto no eliminado: ${error.message}`)
+      throw error
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   const createProvisioningOrder = async (product) => {
     if (!selectedCustomer) return appendLog('Seleccione un cliente antes de aprovisionar')
     setIsLoading(true)
@@ -190,9 +251,7 @@ export default function Home() {
   if (isAuthLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50 p-6 text-slate-900">
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm shadow-lg">
-          Validando sesion...
-        </div>
+        <LoadingOverlay show label="Cargando" />
       </div>
     )
   }
@@ -224,6 +283,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(14,158,239,0.18),transparent_28%),linear-gradient(to_bottom,#f8fbff_0%,#eef2ff_100%)] text-slate-900">
+      <LoadingOverlay show={isLoading} label="Cargando" />
       <Topbar selectedCustomer={selectedCustomer} logout={logout} />
 
       <main className="mx-auto max-w-7xl px-6 py-8">
@@ -247,9 +307,6 @@ export default function Home() {
             tabs={tabs}
             activeTab={activeTab}
             setActiveTab={setActiveTab}
-            counts={{ customers: customerList.length, services: activeServices.length, invoices: invoices.length, payments: payments.length }}
-            onRefresh={loadData}
-            isLoading={isLoading}
           />
 
           <section className="space-y-6">
@@ -279,7 +336,17 @@ export default function Home() {
                 isLoading={isLoading}
               />
             )}
-            {activeTab === 'catalog' && <CatalogSection catalog={catalog} createProvisioningOrder={createProvisioningOrder} />}
+            {activeTab === 'catalog' && (
+              <CatalogSection
+                catalog={catalog}
+                createProvisioningOrder={createProvisioningOrder}
+                createProduct={createCatalogProduct}
+                updateProduct={updateCatalogProduct}
+                toggleProduct={toggleCatalogProduct}
+                deleteProduct={deleteCatalogProduct}
+                isLoading={isLoading}
+              />
+            )}
             {activeTab === 'billing' && <BillingSection invoices={invoices} payments={payments} generateInvoice={generateInvoice} processPayment={processPayment} />}
             {activeTab === 'external' && (
               <ExternalSystemsSection

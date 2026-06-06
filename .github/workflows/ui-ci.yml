@@ -6,6 +6,9 @@ on:
       - main
     paths:
       - "ui/**"
+      - "docs/**"
+      - "scripts/generate_architecture_html.py"
+      - "scripts/prepare_ui_manuals.py"
       - ".github/workflows/ui-ci.yml"
   workflow_dispatch:
 
@@ -26,6 +29,8 @@ env:
   PUBLIC_HOST: ${{ vars.PUBLIC_HOST || 'reto1.telcox.site' }}
   NEXT_PUBLIC_KEYCLOAK_REALM: telcox
   NEXT_PUBLIC_KEYCLOAK_CLIENT_ID: telcox-web
+  MANUALS_BASIC_AUTH_SECRET_NAME: telcox-manuals-basic-auth
+  MANUALS_BASIC_AUTH_USERS: ${{ secrets.MANUALS_BASIC_AUTH_USERS }}
 
 jobs:
   build-push-and-deploy:
@@ -41,6 +46,11 @@ jobs:
         run: |
           echo "IMAGE_TAG=${GITHUB_SHA}" >> "$GITHUB_ENV"
           echo "NEXT_PUBLIC_KEYCLOAK_URL=https://${PUBLIC_HOST}/auth" >> "$GITHUB_ENV"
+
+      - name: Prepare manuals static files
+        shell: bash
+        run: |
+          python3 scripts/prepare_ui_manuals.py
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -90,6 +100,21 @@ jobs:
           kubectl get nodes
           helm list --namespace "${NAMESPACE}"
 
+      - name: Configure manuals Basic Auth
+        shell: bash
+        run: |
+          if [ -z "${MANUALS_BASIC_AUTH_USERS}" ]; then
+            echo "ERROR: Missing MANUALS_BASIC_AUTH_USERS secret."
+            echo "Create it with an htpasswd line, for example:"
+            echo "  htpasswd -nbB usuario 'contrasena-segura'"
+            exit 1
+          fi
+
+          kubectl create secret generic "${MANUALS_BASIC_AUTH_SECRET_NAME}" \
+            --namespace "${NAMESPACE}" \
+            --from-literal=users="${MANUALS_BASIC_AUTH_USERS}" \
+            --dry-run=client -o yaml | kubectl apply -f -
+
       - name: Deploy with Helm
         shell: bash
         run: |
@@ -100,7 +125,8 @@ jobs:
             --timeout 5m \
             --set image.repository="${IMAGE_NAME}" \
             --set image.tag="${IMAGE_TAG}" \
-            --set ingress.host="${PUBLIC_HOST}"
+            --set ingress.host="${PUBLIC_HOST}" \
+            --set manuals.auth.existingSecret="${MANUALS_BASIC_AUTH_SECRET_NAME}"
 
       - name: Verify Kubernetes rollout
         shell: bash

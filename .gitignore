@@ -5,5 +5,14 @@ ui/node_modules/
 mobile/node_modules/
 ui/dist/
 ui/.next/
+ui/public/manuales/
 ui/.env.local
 logs/
+.generated/
+*.log
+*.pyc
+*.pyo
+*.env
+*.DS_Store
+.idea/
+.vscode/

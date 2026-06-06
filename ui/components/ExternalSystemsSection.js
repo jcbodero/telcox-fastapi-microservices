@@ -1,413 +1,469 @@
-import { useState } from 'react'
-import { buildUrl, fetchJson } from '../lib/serviceApi'
+import { useMemo, useState } from 'react'
 
-// ─── Status pill helper ────────────────────────────────────────────────────
-function StatusPill({ online }) {
-  return online
-    ? <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-emerald-700"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />Online</span>
-    : <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-100 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-rose-700"><span className="h-1.5 w-1.5 rounded-full bg-rose-500" />Offline</span>
+const systemTabs = [
+  {
+    key: 'overview',
+    icon: 'BSS',
+    label: 'Resumen',
+    description: 'Flujo integrado',
+  },
+  {
+    key: 'sri',
+    icon: 'SRI',
+    label: 'SRI',
+    description: 'Facturas',
+  },
+  {
+    key: 'paymentGateway',
+    icon: 'PSP',
+    label: 'Gateway PSP',
+    description: 'Pagos',
+  },
+  {
+    key: 'networkOss',
+    icon: 'OSS',
+    label: 'OSS/NMS',
+    description: 'Altas',
+  },
+  {
+    key: 'kyc',
+    icon: 'ID',
+    label: 'Identidad',
+    description: 'KYC',
+  },
+  {
+    key: 'notificationGateway',
+    icon: 'MSG',
+    label: 'Notificaciones',
+    description: 'Alertas',
+  },
+]
+
+const flowItems = [
+  { key: 'sri', icon: 'SRI', label: 'Factura', target: 'SRI', tone: 'emerald' },
+  { key: 'paymentGateway', icon: 'PSP', label: 'Pago', target: 'Gateway PSP', tone: 'indigo' },
+  { key: 'networkOss', icon: 'OSS', label: 'Alta', target: 'OSS/NMS', tone: 'sky' },
+  { key: 'kyc', icon: 'ID', label: 'KYC', target: 'Identidad', tone: 'amber' },
+  { key: 'notificationGateway', icon: 'MSG', label: 'Alerta', target: 'Gateway Notif.', tone: 'cyan' },
+]
+
+const toneMap = {
+  emerald: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+  indigo: 'border-indigo-200 bg-indigo-50 text-indigo-700',
+  sky: 'border-sky-200 bg-sky-50 text-sky-700',
+  amber: 'border-amber-200 bg-amber-50 text-amber-700',
+  cyan: 'border-cyan-200 bg-cyan-50 text-cyan-700',
+  slate: 'border-slate-200 bg-slate-50 text-slate-700',
+  rose: 'border-rose-200 bg-rose-50 text-rose-700',
 }
 
-// ─── Section wrapper ───────────────────────────────────────────────────────
-function ExtCard({ title, subtitle, icon, accent, health, children }) {
-  const online = health && health.status === 'ok'
+function isOnline(data) {
+  return data?.health?.status === 'ok'
+}
+
+function Badge({ text, tone = 'slate' }) {
   return (
-    <div className="rounded-[28px] border border-slate-200/70 bg-white/95 p-5 shadow-lg shadow-slate-200/10 hover:shadow-telecard hover:border-telecom-300 transition-all duration-300">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-telecom-600 to-telecom-400 text-white text-lg shadow-sm shadow-telecom-500/10">
-            {icon}
-          </div>
-          <div>
-            <h3 className="text-sm font-bold text-slate-900">{title}</h3>
-            <p className="text-[11px] text-slate-500 font-medium">{subtitle}</p>
-          </div>
-        </div>
-        <StatusPill online={online} />
-      </div>
-      <div className="mt-4">{children}</div>
+    <span className={`inline-flex rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] ${toneMap[tone] || toneMap.slate}`}>
+      {text || 'N/A'}
+    </span>
+  )
+}
+
+function TextIcon({ children, tone = 'slate' }) {
+  return (
+    <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-2xl border text-[11px] font-black tracking-[0.08em] ${toneMap[tone] || toneMap.slate}`}>
+      {children}
+    </span>
+  )
+}
+
+function MetricCard({ label, value, tone = 'slate' }) {
+  return (
+    <div className={`rounded-[20px] border px-4 py-3 ${toneMap[tone] || toneMap.slate}`}>
+      <p className="text-[10px] font-bold uppercase tracking-[0.14em] opacity-80">{label}</p>
+      <p className="mt-2 text-2xl font-black">{value}</p>
     </div>
   )
 }
 
-// ─── Small data row ────────────────────────────────────────────────────────
-function DataRow({ label, value, mono }) {
+function DataRow({ label, value, mono = false }) {
   return (
-    <div className="flex items-center justify-between border-b border-slate-200/60 py-1.5 last:border-0">
-      <span className="text-[11px] text-slate-500">{label}</span>
-      <span className={`text-[11px] font-semibold text-slate-800 ${mono ? 'font-mono' : ''}`}>{value ?? '—'}</span>
+    <div className="flex items-center justify-between gap-4 border-b border-slate-200/70 py-2 last:border-0">
+      <span className="text-xs font-semibold text-slate-500">{label}</span>
+      <span className={`text-right text-xs font-bold text-slate-800 ${mono ? 'font-mono' : ''}`}>{value ?? '-'}</span>
     </div>
   )
 }
 
-// ─── Badge ─────────────────────────────────────────────────────────────────
-function Badge({ text, color }) {
-  const map = {
-    green: 'bg-emerald-100 text-emerald-800',
-    red: 'bg-rose-100 text-rose-800',
-    amber: 'bg-amber-100 text-amber-800',
-    blue: 'bg-blue-100 text-blue-800',
-    violet: 'bg-violet-100 text-violet-800',
-    slate: 'bg-slate-100 text-slate-700',
-  }
-  return <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${map[color] || map.slate}`}>{text}</span>
+function EmptyState({ text }) {
+  return (
+    <div className="rounded-[24px] border border-dashed border-slate-300 bg-slate-50 p-8 text-center text-sm font-medium text-slate-500">
+      {text}
+    </div>
+  )
 }
 
-// ─── Payment Gateway Panel ─────────────────────────────────────────────────
-function PaymentGatewayPanel({ data, onTestCharge }) {
-  const { transactions = [], health } = data
-  const approved = transactions.filter(t => t.status === 'approved').length
-  const declined = transactions.filter(t => t.status === 'declined' || t.status === 'refunded').length
-
+function SystemHeader({ icon, title, subtitle, online, tone }) {
   return (
-    <ExtCard title="Payment Gateway" subtitle="PSP Visa / Mastercard (mock)" icon="💳" accent="violet" health={health}>
-      <div className="mb-3 grid grid-cols-3 gap-2">
-        <div className="rounded-xl bg-white/80 p-3 text-center shadow-sm">
-          <p className="text-lg font-bold text-slate-900">{transactions.length}</p>
-          <p className="text-[10px] text-slate-500">Transacciones</p>
-        </div>
-        <div className="rounded-xl bg-emerald-50 p-3 text-center shadow-sm">
-          <p className="text-lg font-bold text-emerald-700">{approved}</p>
-          <p className="text-[10px] text-emerald-600">Aprobadas</p>
-        </div>
-        <div className="rounded-xl bg-rose-50 p-3 text-center shadow-sm">
-          <p className="text-lg font-bold text-rose-700">{declined}</p>
-          <p className="text-[10px] text-rose-600">Declinadas</p>
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex items-start gap-3">
+        <TextIcon tone={tone}>{icon}</TextIcon>
+        <div>
+          <h3 className="text-xl font-black text-slate-950">{title}</h3>
+          <p className="mt-1 text-sm font-medium text-slate-500">{subtitle}</p>
         </div>
       </div>
+      <Badge text={online ? 'Online' : 'Offline'} tone={online ? 'emerald' : 'rose'} />
+    </div>
+  )
+}
 
-      {transactions.length > 0 ? (
-        <div className="space-y-2">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Últimas transacciones</p>
-          {transactions.slice(-3).reverse().map(txn => (
-            <div key={txn.transaction_id} className="rounded-xl bg-white/90 p-3 shadow-sm">
-              <div className="flex items-center justify-between">
-                <span className="font-mono text-[10px] text-slate-500">{txn.transaction_id?.slice(0, 18)}…</span>
-                <Badge text={txn.status} color={txn.status === 'approved' ? 'green' : txn.status === 'refunded' ? 'amber' : 'red'} />
-              </div>
-              <div className="mt-1.5 flex items-center justify-between">
-                <span className="text-[11px] text-slate-600">{txn.gateway || 'telcox-psp-mock'}</span>
-                <span className="font-semibold text-slate-900 text-xs">{txn.currency} {parseFloat(txn.amount || 0).toFixed(2)}</span>
-              </div>
-              {txn.authorization_code && (
-                <p className="mt-1 font-mono text-[10px] text-violet-600">AUTH: {txn.authorization_code}</p>
-              )}
-            </div>
+function SriPanel({ data }) {
+  const authorizations = data?.authorizations || []
+  const authorized = authorizations.filter((item) => item.status === 'authorized').length
+
+  return (
+    <SystemPanel>
+      <SystemHeader icon="SRI" title="SRI Ecuador" subtitle="Autorizacion de comprobantes electronicos" online={isOnline(data)} tone="emerald" />
+      <div className="mt-6 grid gap-3 sm:grid-cols-2">
+        <MetricCard label="Comprobantes" value={authorizations.length} tone="slate" />
+        <MetricCard label="Autorizados" value={authorized} tone="emerald" />
+      </div>
+      <RecordsTitle title="Ultimas autorizaciones" />
+      {authorizations.length === 0 ? (
+        <EmptyState text="Sin autorizaciones registradas en esta sesion." />
+      ) : (
+        <div className="space-y-3">
+          {authorizations.slice(-5).reverse().map((item, index) => (
+            <RecordCard key={item.sri_access_key || index}>
+              <DataRow label="Factura" value={item.invoice_id} />
+              <DataRow label="Monto" value={`${item.currency || 'USD'} ${Number(item.amount || 0).toFixed(2)}`} />
+              <DataRow label="Estado" value={<Badge text={item.status} tone="emerald" />} />
+              <DataRow label="Clave SRI" value={item.sri_access_key?.slice(0, 32)} mono />
+            </RecordCard>
           ))}
         </div>
-      ) : (
-        <p className="text-center text-[11px] text-slate-400 py-3">Sin transacciones en esta sesión</p>
       )}
+    </SystemPanel>
+  )
+}
 
-      <div className="mt-3 grid grid-cols-2 gap-2">
+function PaymentGatewayPanel({ data, onTestCharge, isLoading }) {
+  const transactions = data?.transactions || []
+  const approved = transactions.filter((item) => item.status === 'approved').length
+  const declined = transactions.filter((item) => item.status === 'declined' || item.status === 'refunded').length
+
+  return (
+    <SystemPanel>
+      <SystemHeader icon="PSP" title="Gateway PSP" subtitle="Procesamiento de pagos con gateway externo mock" online={isOnline(data)} tone="indigo" />
+      <div className="mt-6 grid gap-3 sm:grid-cols-3">
+        <MetricCard label="Transacciones" value={transactions.length} tone="slate" />
+        <MetricCard label="Aprobadas" value={approved} tone="emerald" />
+        <MetricCard label="Declinadas" value={declined} tone="rose" />
+      </div>
+      <div className="mt-5 grid gap-3 sm:grid-cols-2">
         <button
+          type="button"
           onClick={() => onTestCharge('success')}
-          className="rounded-xl bg-telecom-500 px-3 py-2 text-[11px] font-bold text-white hover:bg-telecom-600 transition shadow-sm shadow-telecom-500/10"
+          disabled={isLoading}
+          className="rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-500/20 transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:bg-slate-300"
         >
           Test cobro exitoso
         </button>
         <button
+          type="button"
           onClick={() => onTestCharge('fail')}
-          className="rounded-xl bg-rose-600 px-3 py-2 text-[11px] font-bold text-white hover:bg-rose-500 transition shadow-sm shadow-rose-600/10"
+          disabled={isLoading}
+          className="rounded-2xl bg-rose-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-rose-500/20 transition hover:bg-rose-500 disabled:cursor-not-allowed disabled:bg-slate-300"
         >
           Test cobro fallido
         </button>
       </div>
-    </ExtCard>
+      <RecordsTitle title="Ultimas transacciones" />
+      {transactions.length === 0 ? (
+        <EmptyState text="Sin transacciones registradas en esta sesion." />
+      ) : (
+        <div className="space-y-3">
+          {transactions.slice(-5).reverse().map((item) => (
+            <RecordCard key={item.transaction_id}>
+              <DataRow label="Transaccion" value={item.transaction_id?.slice(0, 28)} mono />
+              <DataRow label="Gateway" value={item.gateway || 'telcox-psp-mock'} />
+              <DataRow label="Monto" value={`${item.currency || 'USD'} ${Number(item.amount || 0).toFixed(2)}`} />
+              <DataRow label="Estado" value={<Badge text={item.status} tone={item.status === 'approved' ? 'emerald' : 'rose'} />} />
+              {item.authorization_code && <DataRow label="Autorizacion" value={item.authorization_code} mono />}
+            </RecordCard>
+          ))}
+        </div>
+      )}
+    </SystemPanel>
   )
 }
 
-// ─── Network OSS Panel ─────────────────────────────────────────────────────
 function NetworkOssPanel({ data }) {
-  const { orders = [], networkStatus, health } = data
-  const active = orders.filter(o => o.status === 'active').length
+  const orders = data?.orders || []
+  const networkStatus = data?.networkStatus
   const regions = networkStatus?.regions || {}
+  const active = orders.filter((item) => item.status === 'active').length
 
   return (
-    <ExtCard title="Network OSS / NMS" subtitle="Gestión de red y provisión (mock)" icon="🗼" accent="blue" health={health}>
-      <div className="mb-3 grid grid-cols-2 gap-2">
-        <div className="rounded-xl bg-white/80 p-3 text-center shadow-sm">
-          <p className="text-lg font-bold text-slate-900">{orders.length}</p>
-          <p className="text-[10px] text-slate-500">Órdenes de red</p>
-        </div>
-        <div className="rounded-xl bg-blue-50 p-3 text-center shadow-sm">
-          <p className="text-lg font-bold text-blue-700">{active}</p>
-          <p className="text-[10px] text-blue-600">Activaciones</p>
-        </div>
+    <SystemPanel>
+      <SystemHeader icon="OSS" title="Network OSS / NMS" subtitle="Provisionamiento tecnico y estado de red" online={isOnline(data)} tone="sky" />
+      <div className="mt-6 grid gap-3 sm:grid-cols-2">
+        <MetricCard label="Ordenes de red" value={orders.length} tone="slate" />
+        <MetricCard label="Activaciones" value={active} tone="sky" />
       </div>
-
-      {networkStatus && (
-        <div className="mb-3">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Estado de regiones</p>
-          <div className="space-y-1.5">
-            {Object.entries(regions).map(([city, info]) => (
-              <div key={city} className="flex items-center justify-between rounded-xl bg-white/80 px-3 py-2">
-                <div className="flex items-center gap-2">
-                  <span className={`h-2 w-2 rounded-full ${info.status === 'operational' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-                  <span className="text-[11px] font-semibold text-slate-800 capitalize">{city}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] text-slate-500">5G {info['5g_coverage_pct']}%</span>
-                  <Badge text={info.status} color={info.status === 'operational' ? 'green' : 'amber'} />
-                </div>
+      <RecordsTitle title="Regiones monitoreadas" />
+      {Object.keys(regions).length === 0 ? (
+        <EmptyState text="Sin estado regional disponible." />
+      ) : (
+        <div className="grid gap-3 md:grid-cols-2">
+          {Object.entries(regions).map(([city, info]) => (
+            <RecordCard key={city}>
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm font-black capitalize text-slate-950">{city}</p>
+                <Badge text={info.status} tone={info.status === 'operational' ? 'emerald' : 'amber'} />
               </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {orders.length > 0 && (
-        <div className="space-y-1.5">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Últimas órdenes de red</p>
-          {orders.slice(-2).reverse().map(o => (
-            <div key={o.reference_id} className="rounded-xl bg-white/80 p-3 shadow-sm">
-              <DataRow label="Referencia" value={o.reference_id?.slice(0, 20)} mono />
-              <DataRow label="Operación" value={o.operation} />
-              <DataRow label="Nodo" value={o.network_node} />
-              <DataRow label="Estado" value={<Badge text={o.status} color={o.status === 'active' ? 'green' : 'slate'} />} />
-            </div>
+              <DataRow label="Cobertura 5G" value={`${info['5g_coverage_pct'] || 0}%`} />
+              <DataRow label="Latencia" value={info.latency_ms ? `${info.latency_ms} ms` : '-'} />
+            </RecordCard>
           ))}
         </div>
       )}
-    </ExtCard>
+      <RecordsTitle title="Ultimas ordenes de red" />
+      {orders.length === 0 ? (
+        <EmptyState text="Sin ordenes de red registradas." />
+      ) : (
+        <div className="space-y-3">
+          {orders.slice(-4).reverse().map((item) => (
+            <RecordCard key={item.reference_id}>
+              <DataRow label="Referencia" value={item.reference_id?.slice(0, 28)} mono />
+              <DataRow label="Operacion" value={item.operation} />
+              <DataRow label="Nodo" value={item.network_node} />
+              <DataRow label="Estado" value={<Badge text={item.status} tone={item.status === 'active' ? 'emerald' : 'slate'} />} />
+            </RecordCard>
+          ))}
+        </div>
+      )}
+    </SystemPanel>
   )
 }
 
-// ─── KYC Identity Panel ────────────────────────────────────────────────────
 function KycPanel({ data }) {
-  const { verifications = [], health } = data
-  const completed = verifications.filter(v => v.status === 'completed').length
-  const rejected = verifications.filter(v => v.status === 'rejected').length
-  const review = verifications.filter(v => v.status === 'manual_review').length
+  const verifications = data?.verifications || []
+  const completed = verifications.filter((item) => item.status === 'completed').length
+  const review = verifications.filter((item) => item.status === 'manual_review').length
+  const rejected = verifications.filter((item) => item.status === 'rejected').length
 
   return (
-    <ExtCard title="KYC Identity" subtitle="Verificación documental y biométrica (mock)" icon="🪪" accent="amber" health={health}>
-      <div className="mb-3 grid grid-cols-3 gap-2">
-        <div className="rounded-xl bg-emerald-50 p-3 text-center shadow-sm">
-          <p className="text-lg font-bold text-emerald-700">{completed}</p>
-          <p className="text-[10px] text-emerald-600">Aprobadas</p>
-        </div>
-        <div className="rounded-xl bg-amber-50 p-3 text-center shadow-sm">
-          <p className="text-lg font-bold text-amber-700">{review}</p>
-          <p className="text-[10px] text-amber-600">Revisión</p>
-        </div>
-        <div className="rounded-xl bg-rose-50 p-3 text-center shadow-sm">
-          <p className="text-lg font-bold text-rose-700">{rejected}</p>
-          <p className="text-[10px] text-rose-600">Rechazadas</p>
-        </div>
+    <SystemPanel>
+      <SystemHeader icon="ID" title="KYC Identity" subtitle="Validacion documental, biometria y prueba de vida" online={isOnline(data)} tone="amber" />
+      <div className="mt-6 grid gap-3 sm:grid-cols-3">
+        <MetricCard label="Aprobadas" value={completed} tone="emerald" />
+        <MetricCard label="Revision" value={review} tone="amber" />
+        <MetricCard label="Rechazadas" value={rejected} tone="rose" />
       </div>
-
-      {verifications.length > 0 ? (
-        <div className="space-y-2">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Últimas verificaciones</p>
-          {verifications.slice(-3).reverse().map(v => (
-            <div key={v.verification_id} className="rounded-xl bg-white/90 p-3 shadow-sm">
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="font-mono text-[10px] text-slate-500">{v.verification_id?.slice(0, 20)}</span>
-                <Badge text={v.status} color={v.status === 'completed' ? 'green' : v.status === 'manual_review' ? 'amber' : 'red'} />
-              </div>
-              <div className="grid grid-cols-3 gap-1.5 text-[10px]">
-                <div className="rounded-lg bg-slate-50 p-1.5 text-center">
-                  <p className={`font-bold ${v.document_check === 'approved' ? 'text-emerald-600' : 'text-rose-600'}`}>
-                    {v.document_check === 'approved' ? '✓' : '✗'}
-                  </p>
-                  <p className="text-slate-500">Documento</p>
-                </div>
-                <div className="rounded-lg bg-slate-50 p-1.5 text-center">
-                  <p className={`font-bold ${v.face_match === 'approved' ? 'text-emerald-600' : 'text-amber-600'}`}>
-                    {v.face_match === 'approved' ? '✓' : v.face_match === 'manual_review' ? '⚡' : '✗'}
-                  </p>
-                  <p className="text-slate-500">Face match</p>
-                </div>
-                <div className="rounded-lg bg-slate-50 p-1.5 text-center">
-                  <p className={`font-bold ${v.liveness === 'approved' ? 'text-emerald-600' : 'text-rose-600'}`}>
-                    {v.liveness === 'approved' ? '✓' : '✗'}
-                  </p>
-                  <p className="text-slate-500">Liveness</p>
-                </div>
-              </div>
-              {v.similarity_score && (
-                <p className="mt-1.5 text-[10px] text-slate-500">Similitud: <span className="font-bold text-slate-700">{(v.similarity_score * 100).toFixed(1)}%</span></p>
-              )}
-            </div>
+      <RecordsTitle title="Ultimas verificaciones" />
+      {verifications.length === 0 ? (
+        <EmptyState text="Sin verificaciones registradas en esta sesion." />
+      ) : (
+        <div className="space-y-3">
+          {verifications.slice(-5).reverse().map((item) => (
+            <RecordCard key={item.verification_id}>
+              <DataRow label="Verificacion" value={item.verification_id?.slice(0, 28)} mono />
+              <DataRow label="Documento" value={item.document_check} />
+              <DataRow label="Face match" value={item.face_match} />
+              <DataRow label="Liveness" value={item.liveness} />
+              <DataRow label="Estado" value={<Badge text={item.status} tone={item.status === 'completed' ? 'emerald' : item.status === 'manual_review' ? 'amber' : 'rose'} />} />
+              {item.similarity_score && <DataRow label="Similitud" value={`${(item.similarity_score * 100).toFixed(1)}%`} />}
+            </RecordCard>
           ))}
         </div>
-      ) : (
-        <p className="text-center text-[11px] text-slate-400 py-3">Sin verificaciones en esta sesión</p>
       )}
-    </ExtCard>
+    </SystemPanel>
   )
 }
 
-// ─── SRI Ecuador Panel ─────────────────────────────────────────────────────
-function SriPanel({ data }) {
-  const { authorizations = [], health } = data
-  const authorized = authorizations.filter(a => a.status === 'authorized').length
-
-  return (
-    <ExtCard title="SRI Ecuador" subtitle="Autorización comprobantes electrónicos" icon="🏛️" accent="emerald" health={health}>
-      <div className="mb-3 grid grid-cols-2 gap-2">
-        <div className="rounded-xl bg-white/80 p-3 text-center shadow-sm">
-          <p className="text-lg font-bold text-slate-900">{authorizations.length}</p>
-          <p className="text-[10px] text-slate-500">Comprobantes</p>
-        </div>
-        <div className="rounded-xl bg-emerald-50 p-3 text-center shadow-sm">
-          <p className="text-lg font-bold text-emerald-700">{authorized}</p>
-          <p className="text-[10px] text-emerald-600">Autorizados</p>
-        </div>
-      </div>
-
-      {authorizations.length > 0 ? (
-        <div className="space-y-2">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Últimas autorizaciones</p>
-          {authorizations.slice(-3).reverse().map((a, i) => (
-            <div key={a.sri_access_key || i} className="rounded-xl bg-white/90 p-3 shadow-sm">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-[11px] font-semibold text-slate-700">Factura: {a.invoice_id}</span>
-                <Badge text={a.status} color="green" />
-              </div>
-              {a.sri_access_key && (
-                <p className="font-mono text-[9px] text-emerald-600 truncate">Clave: {a.sri_access_key?.slice(0, 24)}…</p>
-              )}
-              {a.amount && (
-                <p className="text-[10px] text-slate-500 mt-0.5">{a.currency} {parseFloat(a.amount).toFixed(2)}</p>
-              )}
-            </div>
-          ))}
-        </div>
-      ) : (
-        <p className="text-center text-[11px] text-slate-400 py-3">Sin autorizaciones en esta sesión</p>
-      )}
-    </ExtCard>
-  )
-}
-
-// ─── Notification Gateway Panel ────────────────────────────────────────────
 function NotificationGatewayPanel({ data }) {
-  const { messages = [], stats, health } = data
+  const messages = data?.messages || []
+  const stats = data?.stats
   const byChannel = stats?.by_channel || {}
 
   return (
-    <ExtCard title="Notification Gateway" subtitle="Twilio / SendGrid / FCM (mock)" icon="📡" accent="cyan" health={health}>
-      <div className="mb-3 grid grid-cols-3 gap-2">
-        {['sms', 'email', 'push'].map(ch => (
-          <div key={ch} className="rounded-xl bg-white/80 p-3 text-center shadow-sm">
-            <p className="text-lg font-bold text-slate-900">{byChannel[ch] || 0}</p>
-            <p className="text-[10px] text-slate-500 uppercase">{ch}</p>
-          </div>
-        ))}
+    <SystemPanel>
+      <SystemHeader icon="MSG" title="Notification Gateway" subtitle="Mensajes SMS, email y push contra proveedores mock" online={isOnline(data)} tone="cyan" />
+      <div className="mt-6 grid gap-3 sm:grid-cols-3">
+        <MetricCard label="SMS" value={byChannel.sms || 0} tone="cyan" />
+        <MetricCard label="Email" value={byChannel.email || 0} tone="sky" />
+        <MetricCard label="Push" value={byChannel.push || 0} tone="indigo" />
       </div>
-
-      {messages.length > 0 ? (
-        <div className="space-y-2">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Últimos mensajes entregados</p>
-          {messages.slice(-4).reverse().map(m => (
-            <div key={m.message_id} className="rounded-xl bg-white/90 p-3 shadow-sm">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-[11px] font-semibold text-slate-700">
-                  {m.channel === 'sms' ? '📱' : m.channel === 'email' ? '📧' : '🔔'} {m.event_type || m.channel}
-                </span>
-                <Badge text={m.status} color={m.status === 'delivered' || m.status === 'sent' ? 'green' : 'red'} />
-              </div>
-              <p className="text-[10px] text-slate-500 truncate">{m.message?.slice(0, 60)}…</p>
-              {m.provider && <p className="mt-0.5 text-[9px] text-cyan-600 font-medium">{m.provider}</p>}
-            </div>
+      <RecordsTitle title="Ultimos mensajes entregados" />
+      {messages.length === 0 ? (
+        <EmptyState text="Sin mensajes registrados en esta sesion." />
+      ) : (
+        <div className="space-y-3">
+          {messages.slice(-5).reverse().map((item) => (
+            <RecordCard key={item.message_id}>
+              <DataRow label="Mensaje" value={item.message_id?.slice(0, 28)} mono />
+              <DataRow label="Canal" value={item.channel} />
+              <DataRow label="Evento" value={item.event_type || item.channel} />
+              <DataRow label="Proveedor" value={item.provider || '-'} />
+              <DataRow label="Estado" value={<Badge text={item.status} tone={item.status === 'delivered' || item.status === 'sent' ? 'emerald' : 'rose'} />} />
+              <p className="mt-3 truncate rounded-2xl bg-slate-50 px-3 py-2 text-xs font-medium text-slate-500">
+                {item.message || 'Sin contenido'}
+              </p>
+            </RecordCard>
           ))}
         </div>
-      ) : (
-        <p className="text-center text-[11px] text-slate-400 py-3">Sin mensajes en esta sesión</p>
       )}
-    </ExtCard>
+    </SystemPanel>
   )
 }
 
-// ─── Main ExternalSystemsSection ───────────────────────────────────────────
+function SystemPanel({ children }) {
+  return (
+    <section className="rounded-[32px] border border-slate-200/80 bg-white p-6 shadow-lg shadow-slate-200/30">
+      {children}
+    </section>
+  )
+}
+
+function RecordCard({ children }) {
+  return (
+    <div className="rounded-[22px] border border-slate-200 bg-white px-4 py-3 shadow-sm">
+      {children}
+    </div>
+  )
+}
+
+function RecordsTitle({ title }) {
+  return <h4 className="mt-6 mb-3 text-xs font-black uppercase tracking-[0.18em] text-slate-500">{title}</h4>
+}
+
+function OverviewPanel({ externalData, onlineCount, setActiveTab }) {
+  return (
+    <SystemPanel>
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.24em] text-cyan-700">Mapa de consumo BSS</p>
+          <h3 className="mt-2 text-2xl font-black text-slate-950">BSS TelcoX hacia sistemas externos</h3>
+          <p className="mt-2 max-w-3xl text-sm font-medium text-slate-500">
+            Cada operacion del portal dispara una integracion externa y deja evidencia operacional en su tab.
+          </p>
+        </div>
+        <MetricCard label="Disponibilidad" value={`${onlineCount}/5`} tone={onlineCount >= 4 ? 'emerald' : onlineCount >= 2 ? 'amber' : 'rose'} />
+      </div>
+
+      <div className="mt-6 grid gap-3 xl:grid-cols-5">
+        {flowItems.map((item) => {
+          const online = isOnline(externalData[item.key])
+          return (
+            <button
+              key={item.key}
+              type="button"
+              onClick={() => setActiveTab(item.key)}
+              className="rounded-[24px] border border-slate-200 bg-slate-50 p-4 text-left transition hover:border-cyan-300 hover:bg-cyan-50"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <TextIcon tone={item.tone}>{item.icon}</TextIcon>
+                <Badge text={online ? 'Online' : 'Offline'} tone={online ? 'emerald' : 'rose'} />
+              </div>
+              <p className="mt-4 text-sm font-black text-slate-950">{item.label}</p>
+              <p className="mt-1 text-xs font-bold text-slate-500">BSS {'->'} {item.target}</p>
+            </button>
+          )
+        })}
+      </div>
+    </SystemPanel>
+  )
+}
+
 export default function ExternalSystemsSection({ externalData, onRefreshExternal, onTestCharge, isLoading }) {
+  const [activeTab, setActiveTab] = useState('overview')
+
+  const onlineCount = useMemo(() => {
+    if (!externalData) return 0
+    return flowItems.filter((item) => isOnline(externalData[item.key])).length
+  }, [externalData])
+
   if (!externalData) {
     return (
       <div className="rounded-[32px] border border-slate-200/70 bg-white/90 p-8 text-center shadow-lg">
-        <p className="text-slate-500 text-sm">Cargando datos de sistemas externos…</p>
-        <button onClick={onRefreshExternal} className="mt-4 rounded-2xl bg-telecom-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-telecom-500 transition shadow-md shadow-telecom-500/10">
+        <p className="text-sm font-semibold text-slate-500">Cargando datos de sistemas externos</p>
+        <button
+          type="button"
+          onClick={onRefreshExternal}
+          className="mt-4 rounded-2xl bg-cyan-600 px-5 py-2.5 text-sm font-bold text-white shadow-md shadow-cyan-500/20 transition hover:bg-cyan-500"
+        >
           Cargar sistemas externos
         </button>
       </div>
     )
   }
 
-  const systems = [
-    { key: 'paymentGateway', component: <PaymentGatewayPanel data={externalData.paymentGateway} onTestCharge={onTestCharge} /> },
-    { key: 'networkOss', component: <NetworkOssPanel data={externalData.networkOss} /> },
-    { key: 'kyc', component: <KycPanel data={externalData.kyc} /> },
-    { key: 'sri', component: <SriPanel data={externalData.sri} /> },
-    { key: 'notificationGateway', component: <NotificationGatewayPanel data={externalData.notificationGateway} /> },
-  ]
-
-  const onlineCount = systems.filter(s => {
-    const h = externalData[s.key]?.health
-    return h && h.status === 'ok'
-  }).length
+  const panels = {
+    overview: <OverviewPanel externalData={externalData} onlineCount={onlineCount} setActiveTab={setActiveTab} />,
+    sri: <SriPanel data={externalData.sri} />,
+    paymentGateway: <PaymentGatewayPanel data={externalData.paymentGateway} onTestCharge={onTestCharge} isLoading={isLoading} />,
+    networkOss: <NetworkOssPanel data={externalData.networkOss} />,
+    kyc: <KycPanel data={externalData.kyc} />,
+    notificationGateway: <NotificationGatewayPanel data={externalData.notificationGateway} />,
+  }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="rounded-[32px] border border-telecom-200/70 bg-gradient-to-r from-telecom-50/90 to-cyan-50/70 p-6 shadow-lg shadow-telecom-100/20">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <section className="rounded-[32px] border border-slate-200/70 bg-white/90 p-6 shadow-lg shadow-slate-200/20">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.3em] text-telecom-600">Arquitectura BSS</p>
-            <h2 className="mt-1 text-2xl font-bold text-slate-900">Sistemas Externos Integrados</h2>
-            <p className="mt-1 text-sm text-slate-500">
+            <p className="text-xs font-black uppercase tracking-[0.24em] text-cyan-700">Monitoreo externo</p>
+            <h2 className="mt-2 text-3xl font-black text-slate-950">Sistemas Externos Integrados</h2>
+            <p className="mt-2 max-w-3xl text-sm font-medium text-slate-500">
               Datos en tiempo real de los 5 sistemas externos que el BSS TelcoX consume activamente.
-              Cada panel muestra transacciones reales generadas por las operaciones del portal.
             </p>
           </div>
-          <div className="flex flex-col items-end gap-2">
-            <div className="flex items-center gap-2 rounded-2xl bg-white/90 px-4 py-2.5 shadow-sm border border-slate-100">
-              <span className={`h-2.5 w-2.5 rounded-full ${onlineCount >= 4 ? 'bg-emerald-500 animate-pulse' : onlineCount >= 2 ? 'bg-amber-500' : 'bg-rose-500'}`} />
-              <span className="text-sm font-bold text-slate-800">{onlineCount}/5 sistemas online</span>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+              <span className={`h-2.5 w-2.5 rounded-full ${onlineCount >= 4 ? 'bg-emerald-500' : onlineCount >= 2 ? 'bg-amber-500' : 'bg-rose-500'}`} />
+              <span className="text-sm font-black text-slate-800">{onlineCount}/5 sistemas online</span>
             </div>
             <button
+              type="button"
               onClick={onRefreshExternal}
               disabled={isLoading}
-              className="rounded-2xl bg-telecom-600 px-4 py-2 text-xs font-bold text-white hover:bg-telecom-500 transition disabled:opacity-50 shadow-md shadow-telecom-600/15"
+              className="rounded-2xl bg-cyan-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-cyan-500/20 transition hover:bg-cyan-500 disabled:cursor-not-allowed disabled:bg-slate-300"
             >
-              {isLoading ? 'Actualizando…' : '↻ Actualizar datos externos'}
+              {isLoading ? 'Cargando' : 'Actualizar externos'}
             </button>
           </div>
         </div>
 
-        {/* Integration flow diagram */}
-        <div className="mt-5 overflow-x-auto">
-          <div className="flex min-w-max items-center gap-2 rounded-2xl bg-white/70 px-5 py-3 shadow-inner">
-            <div className="rounded-xl bg-telecom-600 px-3 py-1.5 text-[11px] font-bold text-white shadow-sm shadow-telecom-500/10">BSS TelcoX</div>
-            {[
-              { label: 'Factura → SRI', color: 'emerald' },
-              { label: 'Pago → Gateway PSP', color: 'violet' },
-              { label: 'Alta → OSS/NMS', color: 'blue' },
-              { label: 'KYC → Identidad', color: 'amber' },
-              { label: 'Alerta → Gateway Notif.', color: 'cyan' },
-            ].map((item, i) => {
-              const colorMap = {
-                emerald: 'bg-emerald-50 text-emerald-800 border-emerald-200/60',
-                violet: 'bg-indigo-50 text-indigo-800 border-indigo-200/60',
-                blue: 'bg-blue-50 text-blue-800 border-blue-200/60',
-                amber: 'bg-amber-50 text-amber-800 border-amber-200/60',
-                cyan: 'bg-cyan-50 text-cyan-800 border-cyan-200/60',
-              }
-              return (
-                <div key={i} className="flex items-center gap-2">
-                  <span className="text-slate-300">→</span>
-                  <span className={`rounded-lg border px-2.5 py-1 text-[10px] font-bold ${colorMap[item.color]}`}>{item.label}</span>
+        <div className="mt-6 grid gap-2 sm:grid-cols-2 xl:grid-cols-6">
+          {systemTabs.map((tab) => {
+            const online = tab.key === 'overview' ? onlineCount >= 4 : isOnline(externalData[tab.key])
+            const active = activeTab === tab.key
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => setActiveTab(tab.key)}
+                className={`rounded-[20px] border px-3 py-3 text-left transition ${
+                  active
+                    ? 'border-cyan-300 bg-cyan-50 shadow-md shadow-cyan-500/10'
+                    : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
+                }`}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-black text-slate-900">{tab.icon}</span>
+                  <span className={`h-2 w-2 rounded-full ${online ? 'bg-emerald-500' : 'bg-rose-500'}`} />
                 </div>
-              )
-            })}
-          </div>
+                <p className="mt-2 text-sm font-black text-slate-950">{tab.label}</p>
+                <p className="text-xs font-medium text-slate-500">{tab.description}</p>
+              </button>
+            )
+          })}
         </div>
-      </div>
+      </section>
 
-      {/* Panels grid */}
-      <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-        {systems.map(s => <div key={s.key}>{s.component}</div>)}
-      </div>
+      {panels[activeTab]}
     </div>
   )
 }

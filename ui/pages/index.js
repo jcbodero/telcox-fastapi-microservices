@@ -9,7 +9,7 @@ import BillingSection from '../components/BillingSection'
 import NotificationsSection from '../components/NotificationsSection'
 import AccountSection from '../components/AccountSection'
 import { useAuth } from '../lib/AuthContext'
-import { apiMap, loadAllData, postJson } from '../lib/serviceApi'
+import { apiMap, loadAllData, postJson, patchJson } from '../lib/serviceApi'
 
 const tabs = ['dashboard', 'catalog', 'billing', 'notifications', 'account']
 
@@ -93,12 +93,27 @@ export default function Home() {
     }
   }
 
+  const sendNotification = async (customerId, channel, message) => {
+    try {
+      const payload = { customer_id: customerId, channel, event_type: 'service_update', message, mode: 'success' }
+      await postJson('notification', apiMap.notification, payload, await getAccessToken())
+      appendLog(`Notificación enviada: ${channel}`)
+    } catch (error) {
+      appendLog(`Notification failed: ${error.message}`)
+    }
+  }
+
   const processPayment = async (invoice) => {
     if (!selectedCustomer) return appendLog('Seleccione un cliente antes de pagar')
     try {
       const payload = { customer_id: selectedCustomer.id, invoice_id: invoice.id, amount: invoice.amount, currency: invoice.currency, method: 'card', mode: 'success' }
       const data = await postJson('payment', apiMap.payment, payload, await getAccessToken())
       appendLog(`Pago procesado: ${data.id}`)
+      
+      // Update invoice status in billing_service to paid
+      await patchJson('billing', `/billing-service/invoices/${invoice.id}`, { status: 'paid' }, await getAccessToken())
+      appendLog(`Factura ${invoice.id} marcada como PAGADA`)
+      
       await sendNotification(selectedCustomer.id, 'email', `Pago registrado para ${invoice.id}`)
       await loadData()
     } catch (error) {
@@ -119,25 +134,31 @@ export default function Home() {
   }
 
   const createProvisioningOrder = async (product) => {
-    if (!selectedCustomer) return appendLog('Seleccione un cliente antes de provisionar')
+    if (!selectedCustomer) return appendLog('Seleccione un cliente antes de realizar la solicitud')
     try {
-      const payload = { customer_id: selectedCustomer.id, product_id: product.id, operation: 'activate', channel: 'web', status: 'pending', data_limit_gb: 20 }
+      let operation = 'activate'
+      if (product.type === 'package_upgrade') {
+        operation = 'upgrade'
+      } else if (product.type === 'addon_service') {
+        operation = 'request_addon'
+      }
+
+      const payload = { 
+        customer_id: selectedCustomer.id, 
+        product_id: product.id, 
+        operation, 
+        channel: 'web', 
+        status: 'pending', 
+        data_limit_gb: product.type === 'package_upgrade' ? 10.0 : 20.0 
+      }
       const data = await postJson('provisioning', apiMap.provisioning, payload, await getAccessToken())
-      appendLog(`Provisioning request: ${data.id}`)
-      await sendNotification(selectedCustomer.id, 'sms', `Solicitud de activación para ${product.name}`)
+      appendLog(`Solicitud de ${operation}: ${data.id}`)
+      
+      const channel = product.type === 'addon_service' ? 'email' : 'sms'
+      await sendNotification(selectedCustomer.id, channel, `Solicitud de ${product.name} procesada correctamente`)
       await loadData()
     } catch (error) {
-      appendLog(`Provisioning failed: ${error.message}`)
-    }
-  }
-
-  const sendNotification = async (customerId, channel, message) => {
-    try {
-      const payload = { customer_id: customerId, channel, event_type: 'service_update', message, mode: 'success' }
-      await postJson('notification', apiMap.notification, payload, await getAccessToken())
-      appendLog(`Notificación enviada: ${channel}`)
-    } catch (error) {
-      appendLog(`Notification failed: ${error.message}`)
+      appendLog(`Operación fallida: ${error.message}`)
     }
   }
 
@@ -225,4 +246,3 @@ export default function Home() {
     </div>
   )
 }
-

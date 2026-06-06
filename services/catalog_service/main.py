@@ -63,7 +63,57 @@ products: dict[str, dict[str, Any]] = {
             "currency": "USD",
             "features": ["20GB data", "unlimited calls", "sms included"],
         }
-    )
+    ),
+    "prd-5g-50gb": build_product(
+        {
+            "id": "prd-5g-50gb",
+            "name": "Plan 5G 50GB Ultra",
+            "type": "mobile_plan",
+            "monthly_price": 34.99,
+            "currency": "USD",
+            "features": ["50GB data", "unlimited calls", "international SMS"],
+        }
+    ),
+    "prd-fibra-200m": build_product(
+        {
+            "id": "prd-fibra-200m",
+            "name": "Plan Fibra 200 Mbps",
+            "type": "broadband_plan",
+            "monthly_price": 39.99,
+            "currency": "USD",
+            "features": ["200 Mbps upload/download", "unlimited data", "wifi router included"],
+        }
+    ),
+    "prd-extra-10gb": build_product(
+        {
+            "id": "prd-extra-10gb",
+            "name": "Upgrade: Extra 10GB",
+            "type": "package_upgrade",
+            "monthly_price": 9.99,
+            "currency": "USD",
+            "features": ["10GB extra data", "valid for 30 days"],
+        }
+    ),
+    "prd-roaming": build_product(
+        {
+            "id": "prd-roaming",
+            "name": "Servicio: Roaming América",
+            "type": "addon_service",
+            "monthly_price": 15.00,
+            "currency": "USD",
+            "features": ["Roaming data enabled", "100 roaming minutes"],
+        }
+    ),
+    "prd-streaming": build_product(
+        {
+            "id": "prd-streaming",
+            "name": "Servicio: Streaming Pack",
+            "type": "addon_service",
+            "monthly_price": 8.99,
+            "currency": "USD",
+            "features": ["Netflix & Spotify access included"],
+        }
+    ),
 }
 
 

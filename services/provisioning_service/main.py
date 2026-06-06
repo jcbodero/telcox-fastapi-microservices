@@ -82,19 +82,31 @@ def list_orders() -> list[dict[str, Any]]:
 def create_order(payload: OrderPayload) -> dict[str, Any]:
     order = build_order(payload.data)
     operation = order.get("operation", "activate")
-    order["status"] = "completed" if operation in {"activate", "change_plan", "suspend"} else "pending"
+    # Complete these operations immediately for simulation purposes
+    order["status"] = "completed" if operation in {"activate", "change_plan", "suspend", "upgrade", "request_addon"} else "pending"
     orders[order["id"]] = order
+    
     if order["status"] == "completed":
         try:
+            # Determine limit based on product type
+            prod_id = order.get("product_id", "")
+            limit = 20.0
+            if "extra-10gb" in prod_id:
+                limit = 10.0
+            elif "50gb" in prod_id:
+                limit = 50.0
+            elif "fibra" in prod_id:
+                limit = 1000.0  # Fiber is unlimited, show high limit
+            
             requests.post(
                 "http://localhost:8008/service-status-service/active-services",
                 json={"data": {
                     "customer_id": order.get("customer_id"),
                     "product_id": order.get("product_id"),
-                    "status": "active" if operation == "activate" else order.get("status"),
-                    "data_used_gb": order.get("data_limit_gb", 0),
-                    "data_limit_gb": order.get("data_limit_gb", 20),
-                    "balance": 0,
+                    "status": "active" if operation in {"activate", "upgrade", "request_addon"} else "suspended",
+                    "data_used_gb": 0.0 if operation == "activate" else 8.4,
+                    "data_limit_gb": limit,
+                    "balance": 15.0 if "roaming" in prod_id else (8.99 if "streaming" in prod_id else 0.0),
                 }},
                 timeout=2,
             )

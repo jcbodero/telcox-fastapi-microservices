@@ -66,6 +66,15 @@ export const postJson = async (service, path, payload, token = null) => {
   return response
 }
 
+export const patchJson = async (service, path, payload, token = null) => {
+  const response = await fetchJson(buildUrl(service, path), {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ data: payload }),
+  }, token)
+  return response
+}
+
 export const loadAllData = async (token = null) => {
   return Promise.all([
     fetchJson(buildUrl('customer', apiMap.customer), {}, token),

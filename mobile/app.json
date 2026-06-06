@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "name": "TelcoX Mobile",
+    "slug": "telcox-mobile",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "backgroundColor": "#08111f"
+    }
+  }
+}

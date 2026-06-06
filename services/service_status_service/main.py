@@ -2,7 +2,7 @@ import logging
 import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from .controllers import router
+from controllers import router
 
 app = FastAPI(
     title="TelcoX Service Status Service",

@@ -8,6 +8,7 @@
     "start": "next start -p 3000"
   },
   "dependencies": {
+    "mixpanel-browser": "^2.80.0",
     "next": "13.4.10",
     "react": "18.2.0",
     "react-dom": "18.2.0"

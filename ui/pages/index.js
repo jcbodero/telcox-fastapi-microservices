@@ -9,6 +9,7 @@ import OnboardingGate from '../components/OnboardingGate'
 import LoadingOverlay from '../components/LoadingOverlay'
 import { useAuth } from '../lib/AuthContext'
 import { apiMap, loadAllData, postJson, putJson, patchJson, deleteJson, loadExternalSystemsData } from '../lib/serviceApi'
+import { trackEvent } from '../lib/mixpanelClient'
 
 const tabs = ['dashboard', 'catalog', 'billing', 'external']
 
@@ -33,6 +34,11 @@ export default function Home() {
   }
 
   const selectedCustomer = useMemo(() => user || customerList[0] || null, [user, customerList])
+
+  const selectTab = (tab) => {
+    setActiveTab(tab)
+    trackEvent('Portal Tab Selected', { tab })
+  }
 
   const loadData = async () => {
     setIsLoading(true)
@@ -65,6 +71,7 @@ export default function Home() {
       const extData = await loadExternalSystemsData()
       setExternalData(extData)
       appendLog('Sistemas externos actualizados')
+      trackEvent('External Systems Refreshed')
     } catch (error) {
       appendLog(`Error actualizando externos: ${error.message}`)
     } finally {
@@ -78,6 +85,7 @@ export default function Home() {
       const payload = { amount: 15.0, currency: 'USD', mode }
       const res = await postJson('paymentGateway', '/payment-gateway/charge', payload)
       appendLog(`Prueba PSP ${mode}: ${res.status || 'declined'}`)
+      trackEvent('PSP Test Charge Created', { mode, status: res.status || 'declined' })
       await onRefreshExternal()
     } catch (error) {
       appendLog(`Prueba PSP fallida: ${error.message}`)
@@ -127,6 +135,7 @@ export default function Home() {
       appendLog(`Pago procesado: ${data.id}`)
       await patchJson('billing', `/billing-service/invoices/${invoice.id}`, { status: 'paid' }, await getAccessToken())
       await sendNotification(selectedCustomer.id, 'email', `Pago registrado para ${invoice.id}`)
+      trackEvent('Invoice Payment Processed', { invoice_id: invoice.id, amount: invoice.amount, currency: invoice.currency })
       await loadData()
     } catch (error) {
       appendLog(`Pago fallido: ${error.message}`)
@@ -147,6 +156,7 @@ export default function Home() {
       }
       const data = await postJson('billing', apiMap.billingGenerate, payload, await getAccessToken())
       appendLog(`Factura generada: ${data.id}`)
+      trackEvent('Invoice Generated', { invoice_id: data.id, amount: payload.amount, currency: payload.currency })
       await loadData()
     } catch (error) {
       appendLog(`Factura fallida: ${error.message}`)
@@ -160,6 +170,7 @@ export default function Home() {
     try {
       const data = await postJson('catalog', apiMap.catalog, product, await getAccessToken())
       appendLog(`Producto creado: ${data.name || data.id}`)
+      trackEvent('Catalog Product Created', { product_id: data.id, product_type: data.type })
       await loadData()
       return data
     } catch (error) {
@@ -175,6 +186,7 @@ export default function Home() {
     try {
       const data = await putJson('catalog', `${apiMap.catalog}/${productId}`, product, await getAccessToken())
       appendLog(`Producto actualizado: ${data.name || data.id}`)
+      trackEvent('Catalog Product Updated', { product_id: data.id, product_type: data.type })
       await loadData()
       return data
     } catch (error) {
@@ -191,6 +203,7 @@ export default function Home() {
       const nextStatus = product.status === 'inactive' ? 'active' : 'inactive'
       const data = await patchJson('catalog', `${apiMap.catalog}/${product.id}`, { status: nextStatus }, await getAccessToken())
       appendLog(`${nextStatus === 'active' ? 'Producto activado' : 'Producto pausado'}: ${data.name || data.id}`)
+      trackEvent('Catalog Product Status Changed', { product_id: product.id, status: nextStatus })
       await loadData()
       return data
     } catch (error) {
@@ -206,6 +219,7 @@ export default function Home() {
     try {
       await deleteJson('catalog', `${apiMap.catalog}/${product.id}`, await getAccessToken())
       appendLog(`Producto eliminado: ${product.name || product.id}`)
+      trackEvent('Catalog Product Deleted', { product_id: product.id, product_type: product.type })
       await loadData()
     } catch (error) {
       appendLog(`Producto no eliminado: ${error.message}`)
@@ -236,6 +250,7 @@ export default function Home() {
       }
       const data = await postJson('provisioning', apiMap.provisioning, payload, await getAccessToken())
       appendLog(`Suscripcion aprovisionada: ${data.id}`)
+      trackEvent('Provisioning Order Created', { order_id: data.id, product_id: product.id, operation })
 
       const channel = product.type === 'addon_service' ? 'email' : 'sms'
       await sendNotification(selectedCustomer.id, channel, `Solicitud de ${product.name} procesada correctamente`)
@@ -262,7 +277,13 @@ export default function Home() {
         <div className="w-full max-w-md rounded-[32px] border border-slate-200/80 bg-white/90 p-8 shadow-telecard">
           <h1 className="mb-4 text-3xl font-semibold">TelcoX Business Portal</h1>
           <p className="mb-6 text-slate-700">Inicia sesion con Keycloak para ver tus indicadores y administrar suscripciones.</p>
-          <button onClick={login} className="w-full rounded-3xl bg-cyan-600 px-4 py-3 text-sm font-semibold text-white hover:bg-cyan-500">
+          <button
+            onClick={() => {
+              trackEvent('Login Started')
+              login()
+            }}
+            className="w-full rounded-3xl bg-cyan-600 px-4 py-3 text-sm font-semibold text-white hover:bg-cyan-500"
+          >
             Ingresar con Keycloak
           </button>
         </div>
@@ -306,7 +327,7 @@ export default function Home() {
           <Sidebar
             tabs={tabs}
             activeTab={activeTab}
-            setActiveTab={setActiveTab}
+            setActiveTab={selectTab}
           />
 
           <section className="space-y-6">

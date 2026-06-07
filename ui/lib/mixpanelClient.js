@@ -1,4 +1,5 @@
 const MIXPANEL_TOKEN = process.env.NEXT_PUBLIC_MIXPANEL_TOKEN || ''
+const MIXPANEL_API_HOST = process.env.NEXT_PUBLIC_MIXPANEL_API_HOST || 'https://api-js.mixpanel.com'
 
 let mixpanelInstance = null
 let mixpanelPromise = null
@@ -10,10 +11,16 @@ export const initMixpanel = async () => {
     mixpanelPromise = import('mixpanel-browser').then((module) => {
       const mixpanel = module.default || module
       mixpanel.init(MIXPANEL_TOKEN, {
+        api_host: MIXPANEL_API_HOST,
+        batch_requests: false,
         debug: process.env.NODE_ENV !== 'production',
+        ignore_dnt: true,
         persistence: 'localStorage',
         track_pageview: false,
       })
+      if (process.env.NODE_ENV !== 'production') {
+        window.telcoxMixpanel = mixpanel
+      }
       mixpanelInstance = mixpanel
       return mixpanel
     })
@@ -26,15 +33,19 @@ export const trackEvent = async (eventName, properties = {}) => {
   if (!mixpanel) return
   mixpanel.track(eventName, {
     app: 'telcox-ui',
+    source: 'web',
     ...properties,
   })
 }
 
 export const trackPageView = (path) => {
-  trackEvent('Page Viewed', {
+  const properties = {
     path,
+    current_url: typeof window !== 'undefined' ? window.location.href : path,
     title: typeof document !== 'undefined' ? document.title : 'TelcoX',
-  })
+  }
+  trackEvent('Page Viewed', properties)
+  trackEvent('$mp_web_page_view', properties)
 }
 
 export const identifyUser = async (user) => {
